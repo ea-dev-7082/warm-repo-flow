@@ -1,5 +1,6 @@
 import { ArrowLeft, Printer, Download } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 // Mock data para demonstração
 const mockWarrantyData = {
@@ -56,7 +57,7 @@ const mockWarrantyData = {
   totalReprovadas: "01",
   atenciosamente: "01",
   aguardandoReposicao: "00",
-  responsavel: "Rodolfo Costa",
+  responsavel: "Responsável",
   departamento: "Departamento de Qualidade e Garantia",
   empresa: "Automotriz Indústria e Comércio de Peças Automotivas",
   telefone: "Tel(21) 96480-3390",
@@ -66,6 +67,7 @@ export function WarrantyReportDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const dynamicData = location.state;
+  const { profile } = useAuth();
 
   // Se houver dados dinâmicos, usamos eles; caso contrário, mock
   const data = dynamicData ? {
@@ -116,7 +118,7 @@ export function WarrantyReportDetails() {
     totalReprovadas: dynamicData.produtos?.filter((p: any) => p.recebido).reduce((acc: number, p: any) => p.status === 'nao-procedente' ? acc + Number(p.quantidadeRecebida || p.quantidade || 0) : acc, 0).toString() || "0",
     atenciosamente: "1",
     aguardandoReposicao: "0",
-    responsavel: "Rodolfo Costa",
+    responsavel: dynamicData.responsavel || profile?.nome || "Responsável",
     departamento: "Departamento de Qualidade e Garantia",
     empresa: "Automotriz Indústria e Comércio de Peças Automotivas",
     telefone: "Tel(21) 96480-3390",

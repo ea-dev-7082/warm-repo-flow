@@ -8,6 +8,7 @@ export interface Laudo {
     nfGarantia: string;
     data: string;
     statusLaudo: StatusLaudo;
+    responsavel?: string;
     // TODO: mais campos, como produtos etc.
     [key: string]: any;
 }

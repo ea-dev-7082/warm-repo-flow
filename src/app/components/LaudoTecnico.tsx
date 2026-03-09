@@ -26,18 +26,19 @@ export function LaudoTecnico() {
     cliente: importedData?.cliente || "",
     nfGarantia: importedData?.nfGarantia || "",
     nfInterna: importedData?.nfInterna || "",
-    data: new Date().toISOString().split("T")[0],
+    data: importedData?.data || new Date().toISOString().split("T")[0],
+    responsavel: importedData?.responsavel || profile?.nome || "Responsável",
     produtos: importedData?.produtos?.map((p: any) => ({
       ...p,
-      recebido: false,
-      status: "",
-      itemAvaliado: "",
-      avaliacaoItem: "",
-      acao: "",
-      referencia: "",
-      fabricante: "",
-      dataKit: "",
-      itemReaproveitado: "",
+      recebido: p.recebido ?? false,
+      status: p.status || "",
+      itemAvaliado: p.itemAvaliado || "",
+      avaliacaoItem: p.avaliacaoItem || "",
+      acao: p.acao || "",
+      referencia: p.referencia || "",
+      fabricante: p.fabricante || "",
+      dataKit: p.dataKit || "",
+      itemReaproveitado: p.itemReaproveitado || "",
     })) || [],
   });
 
@@ -803,7 +804,7 @@ export function LaudoTecnico() {
 
               <div className="mt-8 text-center text-[10px]">
                 <div className="border-t border-gray-400 w-48 mx-auto mb-1"></div>
-                <div className="font-bold uppercase">{profile?.nome || "Responsável"}</div>
+                <div className="font-bold uppercase">{formData.responsavel}</div>
                 <div>Departamento de Qualidade e Garantia</div>
                 <div>Automotriz Indústria e Comércio de Peças Automotivas</div>
                 <div>Tel(21) 96480-3390</div>
