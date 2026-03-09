@@ -172,7 +172,8 @@ export function LaudoTecnico() {
       nfInterna: formData.nfInterna,
       produtos: formData.produtos,
       pagamento,
-      statusLaudo: "aberto"
+      statusLaudo: "aberto",
+      responsavel: formData.responsavel
     });
 
     toast.success("Laudo salvo nos itens em aberto!");
