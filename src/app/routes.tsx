@@ -8,11 +8,26 @@ import { Relatorios } from "./components/Relatorios";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { WarrantyReportDetails } from "./components/WarrantyReportDetails";
 import { LaudosAbertos } from "./components/LaudosAbertos";
+import { AuthPage } from "./components/auth/AuthPage";
+import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
+    path: "/reset-password",
+    Component: ResetPasswordPage,
+  },
+  {
+    path: "/login",
+    Component: AuthPage,
+  },
+  {
     path: "/",
-    Component: Layout,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, Component: Dashboard },
       { path: "nova-analise", Component: LaudoTecnico },
