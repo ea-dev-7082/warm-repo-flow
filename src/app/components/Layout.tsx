@@ -8,12 +8,14 @@ import {
   Bell,
   User,
   Menu,
+  FolderOpen,
 } from "lucide-react";
 import { useState } from "react";
 
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/nova-analise", label: "Nova análise", icon: FileText },
+  { path: "/laudos-abertos", label: "Laudos Abertos", icon: FolderOpen },
   { path: "/historico", label: "Histórico", icon: History },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { path: "/configuracoes", label: "Configurações", icon: Settings },

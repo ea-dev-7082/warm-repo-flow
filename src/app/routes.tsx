@@ -7,6 +7,7 @@ import { Historico } from "./components/Historico";
 import { Relatorios } from "./components/Relatorios";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { WarrantyReportDetails } from "./components/WarrantyReportDetails";
+import { LaudosAbertos } from "./components/LaudosAbertos";
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: "importar-xml", Component: ImportXML },
       { path: "historico", Component: Historico },
       { path: "relatorios", Component: Relatorios },
+      { path: "laudos-abertos", Component: LaudosAbertos },
       { path: "laudo/:id", Component: WarrantyReportDetails },
       {
         path: "produtos-problema",

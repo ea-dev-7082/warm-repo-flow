@@ -4,6 +4,7 @@ import { FileDown, Plus, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
 import { MultiSelect } from "./ui/MultiSelect";
+import { useLaudos } from "../contexts/LaudosContext";
 
 const ITEM_OPTIONS = [
   "Coxim", "Batente", "Coifa", "Rolamento",
@@ -14,8 +15,11 @@ export function LaudoTecnico() {
   const location = useLocation();
   const navigate = useNavigate();
   const importedData = location.state;
+  const { adicionarLaudo } = useLaudos();
 
-  const [activeTab, setActiveTab] = useState<"analise" | "cliente" | "interna">("analise");
+  const [activeTab, setActiveTab] = useState<"analise" | "cliente" | "interna">(
+    importedData?.abaOrigem || "analise"
+  );
   const [formData, setFormData] = useState({
     cliente: importedData?.cliente || "",
     nfGarantia: importedData?.nfGarantia || "",
@@ -157,15 +161,19 @@ export function LaudoTecnico() {
     toast.success("Produto adicionado manualmente!");
   };
 
-  const handleSubmit = (finalize: boolean) => {
-    toast.success(
-      finalize ? "Análise finalizada com sucesso!" : "Laudo salvo com sucesso!"
-    );
-    if (finalize) {
-      navigate("/laudo/novo", { state: { ...formData, pagamento } });
-    } else {
-      setTimeout(() => navigate("/"), 1000);
-    }
+  const handleSubmit = () => {
+    adicionarLaudo({
+      cliente: formData.cliente,
+      nfGarantia: formData.nfGarantia,
+      data: formData.data,
+      nfInterna: formData.nfInterna,
+      produtos: formData.produtos,
+      pagamento,
+      statusLaudo: "aberto"
+    });
+
+    toast.success("Laudo salvo nos itens em aberto!");
+    navigate("/laudos-abertos");
   };
 
   const handlePrint = (elementId: string) => {
@@ -361,22 +369,22 @@ export function LaudoTecnico() {
           1. Análise de Produtos
         </button>
         <button
-          onClick={() => setActiveTab("cliente")}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "cliente"
-            ? "border-blue-600 text-blue-600"
-            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-        >
-          2. Laudo Cliente
-        </button>
-        <button
           onClick={() => setActiveTab("interna")}
           className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "interna"
             ? "border-blue-600 text-blue-600"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
         >
-          3. Laudo Interno
+          2. Laudo Interno
+        </button>
+        <button
+          onClick={() => setActiveTab("cliente")}
+          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "cliente"
+            ? "border-blue-600 text-blue-600"
+            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+        >
+          3. Laudo Cliente
         </button>
       </div>
 
@@ -511,11 +519,11 @@ export function LaudoTecnico() {
                         <th className="px-2 py-2 border-b">Código</th>
                         <th className="px-2 py-2 border-b">Descrição</th>
                         <th className="px-2 py-2 border-b">Referência</th>
-                        <th className="px-2 py-2 border-b">Fabricante</th>
                         <th className="px-2 py-2 border-b">Data Kit</th>
                         <th className="px-2 py-2 border-b text-center">QTD</th>
                         <th className="px-2 py-2 border-b">NF interna</th>
                         <th className="px-2 py-2 border-b">Item Avaliado</th>
+                        <th className="px-2 py-2 border-b">Fabricante</th>
                         <th className="px-2 py-2 border-b">Item Reaproveitado</th>
                         <th className="px-2 py-2 border-b">Status</th>
                         <th className="px-2 py-2 border-b">Resolução</th>
@@ -559,26 +567,6 @@ export function LaudoTecnico() {
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             />
                           </td>
-                          <td className="px-2 py-2 min-w-[100px]">
-                            <select
-                              value={p.fabricante || ""}
-                              disabled={!p.recebido}
-                              onChange={(e) => {
-                                const newProdutos = [...formData.produtos];
-                                newProdutos[i].fabricante = e.target.value;
-                                setFormData({ ...formData, produtos: newProdutos });
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                            >
-                              <option value="">Fabricante...</option>
-                              <option value="Cofap">Cofap</option>
-                              <option value="Nakata">Nakata</option>
-                              <option value="Monroe">Monroe</option>
-                              <option value="Axios">Axios</option>
-                              <option value="Sampel">Sampel</option>
-                              <option value="Outros">Outros</option>
-                            </select>
-                          </td>
                           <td className="px-2 py-2 min-w-[80px]">
                             <input
                               type="text"
@@ -612,6 +600,26 @@ export function LaudoTecnico() {
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
                             />
+                          </td>
+                          <td className="px-2 py-2 min-w-[100px]">
+                            <select
+                              value={p.fabricante || ""}
+                              disabled={!p.recebido}
+                              onChange={(e) => {
+                                const newProdutos = [...formData.produtos];
+                                newProdutos[i].fabricante = e.target.value;
+                                setFormData({ ...formData, produtos: newProdutos });
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                            >
+                              <option value="">Fabricante...</option>
+                              <option value="Cofap">Cofap</option>
+                              <option value="Nakata">Nakata</option>
+                              <option value="Monroe">Monroe</option>
+                              <option value="Axios">Axios</option>
+                              <option value="Sampel">Sampel</option>
+                              <option value="Outros">Outros</option>
+                            </select>
                           </td>
                           <td className="px-2 py-2 min-w-[140px]">
                             <MultiSelect
@@ -682,10 +690,10 @@ export function LaudoTecnico() {
 
             <div className="mt-8 flex justify-end">
               <button
-                onClick={() => setActiveTab("cliente")}
+                onClick={() => setActiveTab("interna")}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
               >
-                Próximo: Laudo Cliente
+                Próximo: Laudo Interno
               </button>
             </div>
           </>
@@ -801,20 +809,17 @@ export function LaudoTecnico() {
             </div>
 
             <div className="flex gap-4 justify-between pt-6 border-t">
-              <button onClick={() => setActiveTab("analise")} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                Voltar para Análise
+              <button onClick={() => setActiveTab("interna")} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                Voltar para Laudo Interno
               </button>
               <div className="flex gap-3">
-                <button onClick={() => handleSubmit(false)} className="px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
-                  <Save size={16} />
-                  Salvar
-                </button>
                 <button onClick={() => handlePrint('print-laudo-cliente')} className="px-5 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center gap-2">
                   <Printer size={16} />
                   Imprimir
                 </button>
-                <button onClick={() => setActiveTab("interna")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                  Próximo: Laudo Interno
+                <button onClick={() => handleSubmit()} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
+                  <Save size={16} />
+                  Salvar Análise
                 </button>
               </div>
             </div>
@@ -894,11 +899,11 @@ export function LaudoTecnico() {
             </div>
 
             <div className="flex gap-4 justify-between pt-6 border-t">
-              <button onClick={() => setActiveTab("cliente")} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                Voltar para Laudo Cliente
+              <button onClick={() => setActiveTab("analise")} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                Voltar para Análise
               </button>
               <div className="flex gap-3">
-                <button onClick={() => handleSubmit(false)} className="px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
+                <button onClick={() => handleSubmit()} className="px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
                   <Save size={16} />
                   Salvar
                 </button>
@@ -906,8 +911,8 @@ export function LaudoTecnico() {
                   <Printer size={16} />
                   Imprimir
                 </button>
-                <button onClick={() => handleSubmit(true)} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                  Finalizar Análise
+                <button onClick={() => setActiveTab("cliente")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                  Próximo: Laudo Cliente
                 </button>
               </div>
             </div>
