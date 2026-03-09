@@ -46,32 +46,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Listen BEFORE getSession
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchUserData(session.user.id);
-        } else {
-          setProfile(null);
-          setRole(null);
-        }
-        setLoading(false);
-      }
-    );
+    let mounted = true;
 
+    // Restore initial session first
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserData(session.user.id).finally(() => setLoading(false));
+        fetchUserData(session.user.id).finally(() => {
+          if (mounted) setLoading(false);
+        });
       } else {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Non-blocking listener — never await inside onAuthStateChange
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          // Deferred to avoid blocking the auth event queue
+          setTimeout(() => {
+            if (mounted) fetchUserData(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+          setRole(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
