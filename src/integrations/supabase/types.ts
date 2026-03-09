@@ -14,16 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      laudo_itens: {
+        Row: {
+          codigo: string | null
+          created_at: string
+          descricao: string
+          id: string
+          laudo_id: string
+          quantidade: number | null
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          laudo_id: string
+          quantidade?: number | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          laudo_id?: string
+          quantidade?: number | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laudo_itens_laudo_id_fkey"
+            columns: ["laudo_id"]
+            isOneToOne: false
+            referencedRelation: "laudos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      laudos: {
+        Row: {
+          acao_tomada: string | null
+          causa_raiz: string | null
+          cliente_cidade: string | null
+          cliente_cnpj: string | null
+          cliente_endereco: string | null
+          cliente_estado: string | null
+          cliente_nome: string
+          created_at: string
+          data_emissao_garantia: string | null
+          descricao_defeito: string | null
+          id: string
+          nf_garantia: string
+          nf_venda_data: string | null
+          nf_venda_numero: string | null
+          observacoes: string | null
+          problema_relatado: string | null
+          produto_codigo: string | null
+          produto_descricao: string
+          produto_quantidade: number | null
+          produto_valor_total: number | null
+          produto_valor_unitario: number | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: string
+          updated_at: string
+          xml_dados: Json | null
+          xml_importado: boolean | null
+        }
+        Insert: {
+          acao_tomada?: string | null
+          causa_raiz?: string | null
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_endereco?: string | null
+          cliente_estado?: string | null
+          cliente_nome: string
+          created_at?: string
+          data_emissao_garantia?: string | null
+          descricao_defeito?: string | null
+          id?: string
+          nf_garantia: string
+          nf_venda_data?: string | null
+          nf_venda_numero?: string | null
+          observacoes?: string | null
+          problema_relatado?: string | null
+          produto_codigo?: string | null
+          produto_descricao: string
+          produto_quantidade?: number | null
+          produto_valor_total?: number | null
+          produto_valor_unitario?: number | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          updated_at?: string
+          xml_dados?: Json | null
+          xml_importado?: boolean | null
+        }
+        Update: {
+          acao_tomada?: string | null
+          causa_raiz?: string | null
+          cliente_cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_endereco?: string | null
+          cliente_estado?: string | null
+          cliente_nome?: string
+          created_at?: string
+          data_emissao_garantia?: string | null
+          descricao_defeito?: string | null
+          id?: string
+          nf_garantia?: string
+          nf_venda_data?: string | null
+          nf_venda_numero?: string | null
+          observacoes?: string | null
+          problema_relatado?: string | null
+          produto_codigo?: string | null
+          produto_descricao?: string
+          produto_quantidade?: number | null
+          produto_valor_total?: number | null
+          produto_valor_unitario?: number | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          updated_at?: string
+          xml_dados?: Json | null
+          xml_importado?: boolean | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          cargo: string | null
+          created_at: string
+          empresa: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          cargo?: string | null
+          created_at?: string
+          empresa?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          cargo?: string | null
+          created_at?: string
+          empresa?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "analista"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +337,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "analista"],
+    },
   },
 } as const
