@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
 import { MultiSelect } from "./ui/MultiSelect";
 import { useLaudos } from "../contexts/LaudosContext";
+import { useAuth } from "../hooks/useAuth";
 
 const ITEM_OPTIONS = [
   "Coxim", "Batente", "Coifa", "Rolamento",
@@ -16,6 +17,7 @@ export function LaudoTecnico() {
   const navigate = useNavigate();
   const importedData = location.state;
   const { adicionarLaudo } = useLaudos();
+  const { profile } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"analise" | "cliente" | "interna">(
     importedData?.abaOrigem || "analise"
@@ -801,7 +803,7 @@ export function LaudoTecnico() {
 
               <div className="mt-8 text-center text-[10px]">
                 <div className="border-t border-gray-400 w-48 mx-auto mb-1"></div>
-                <div className="font-bold uppercase">Rodolfo Costa</div>
+                <div className="font-bold uppercase">{profile?.nome || "Responsável"}</div>
                 <div>Departamento de Qualidade e Garantia</div>
                 <div>Automotriz Indústria e Comércio de Peças Automotivas</div>
                 <div>Tel(21) 96480-3390</div>
