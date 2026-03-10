@@ -13,38 +13,128 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-
-const produtosOcorrencias = [
-  { produto: "Motor X500", quantidade: 45 },
-  { produto: "Suspensão Y200", quantidade: 32 },
-  { produto: "Freio Z300", quantidade: 28 },
-  { produto: "Sistema Elétrico", quantidade: 22 },
-  { produto: "Lubrificante L100", quantidade: 15 },
-];
-
-const statusData = [
-  { name: "Procedente", value: 78, color: "#22c55e" },
-  { name: "Não procedente", value: 49, color: "#ef4444" },
-];
-
-const fornecedorData = [
-  { fornecedor: "Fornecedor A", quantidade: 45 },
-  { fornecedor: "Fornecedor B", quantidade: 38 },
-  { fornecedor: "Fornecedor C", quantidade: 25 },
-  { fornecedor: "Fornecedor D", quantidade: 19 },
-];
-
-const garantiasPeriodo = [
-  { mes: "Set", quantidade: 32 },
-  { mes: "Out", quantidade: 45 },
-  { mes: "Nov", quantidade: 38 },
-  { mes: "Dez", quantidade: 52 },
-  { mes: "Jan", quantidade: 48 },
-  { mes: "Fev", quantidade: 41 },
-  { mes: "Mar", quantidade: 35 },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Loader2 } from "lucide-react";
 
 export function Relatorios() {
+  const [loading, setLoading] = useState(true);
+  const [produtosOcorrencias, setProdutosOcorrencias] = useState<any[]>([]);
+  const [statusData, setStatusData] = useState<any[]>([]);
+  const [fornecedorData, setFornecedorData] = useState<any[]>([]);
+  const [garantiasPeriodo, setGarantiasPeriodo] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    taxaProcedencia: 0,
+    tempoMedio: "2.5 dias", // Manter hardcoded por enquanto ou calcular se houver data_fechamento
+  });
+
+  useEffect(() => {
+    async function fetchReportData() {
+      try {
+        setLoading(true);
+        const { data: laudos, error } = await supabase
+          .from("laudos")
+          .select("*");
+
+        if (error) throw error;
+
+        if (!laudos || laudos.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        // 1. Produtos com mais ocorrências
+        const productCounts: Record<string, number> = {};
+        laudos.forEach(l => {
+          const desc = l.produto_descricao || "Sem descrição";
+          productCounts[desc] = (productCounts[desc] || 0) + 1;
+        });
+        const topProducts = Object.entries(productCounts)
+          .map(([produto, quantidade]) => ({ produto, quantidade }))
+          .sort((a, b) => b.quantidade - a.quantidade)
+          .slice(0, 5);
+        setProdutosOcorrencias(topProducts);
+
+        // 2. Procedente vs Não procedente
+        let procedente = 0;
+        let naoProcedente = 0;
+        laudos.forEach(l => {
+          if (l.status === "Procedente") procedente++;
+          else if (l.status === "Não procedente") naoProcedente++;
+        });
+        setStatusData([
+          { name: "Procedente", value: procedente, color: "#22c55e" },
+          { name: "Não procedente", value: naoProcedente, color: "#ef4444" },
+        ]);
+
+        // 3. Garantias por Fabricante (Fornecedor)
+        const manufacturerCounts: Record<string, number> = {};
+        laudos.forEach(l => {
+          const produtos = (l.xml_dados as any)?.produtos || [];
+          produtos.forEach((p: any) => {
+            const fab = p.fabricante || "Outros";
+            manufacturerCounts[fab] = (manufacturerCounts[fab] || 0) + 1;
+          });
+        });
+        const topManufacturers = Object.entries(manufacturerCounts)
+          .map(([fornecedor, quantidade]) => ({ fornecedor, quantidade }))
+          .sort((a, b) => b.quantidade - a.quantidade)
+          .slice(0, 5);
+        setFornecedorData(topManufacturers);
+
+        // 4. Garantias por período (últimos 7 meses)
+        const last7Months = Array.from({ length: 7 }, (_, i) => {
+          const date = subMonths(new Date(), 6 - i);
+          return {
+            month: startOfMonth(date),
+            label: format(date, "MMM", { locale: ptBR }),
+            quantidade: 0,
+          };
+        });
+
+        laudos.forEach(l => {
+          const createdAt = parseISO(l.created_at);
+          last7Months.forEach(m => {
+            if (isWithinInterval(createdAt, {
+              start: m.month,
+              end: endOfMonth(m.month)
+            })) {
+              m.quantidade++;
+            }
+          });
+        });
+        setGarantiasPeriodo(last7Months.map(m => ({ mes: m.label, quantidade: m.quantidade })));
+
+        // 5. Estatísticas Gerais
+        const total = laudos.length;
+        const taxa = total > 0 ? (procedente / total) * 100 : 0;
+        setStats(prev => ({
+          ...prev,
+          total,
+          taxaProcedencia: taxa,
+        }));
+
+      } catch (error) {
+        console.error("Erro ao carregar dados do relatório:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchReportData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[600px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Gráfico 1: Produtos com mais ocorrências */}
@@ -95,14 +185,14 @@ export function Relatorios() {
         {/* Tabela: Fornecedor */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Garantias por Fornecedor
+            Garantias por Fabricante
           </h3>
           <div className="overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Fornecedor
+                    Fabricante
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Quantidade
@@ -156,7 +246,7 @@ export function Relatorios() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total de Garantias</p>
-              <p className="text-3xl font-semibold text-gray-900 mt-1">127</p>
+              <p className="text-3xl font-semibold text-gray-900 mt-1">{stats.total}</p>
             </div>
           </div>
         </div>
@@ -165,7 +255,7 @@ export function Relatorios() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Taxa de Procedência</p>
-              <p className="text-3xl font-semibold text-green-600 mt-1">61.4%</p>
+              <p className="text-3xl font-semibold text-green-600 mt-1">{stats.taxaProcedencia.toFixed(1)}%</p>
             </div>
           </div>
         </div>
@@ -174,7 +264,7 @@ export function Relatorios() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Tempo Médio de Análise</p>
-              <p className="text-3xl font-semibold text-blue-600 mt-1">2.5 dias</p>
+              <p className="text-3xl font-semibold text-blue-600 mt-1">{stats.tempoMedio}</p>
             </div>
           </div>
         </div>

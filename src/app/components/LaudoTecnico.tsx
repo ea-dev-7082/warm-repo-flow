@@ -16,7 +16,7 @@ export function LaudoTecnico() {
   const location = useLocation();
   const navigate = useNavigate();
   const importedData = location.state;
-  const { adicionarLaudo } = useLaudos();
+  const { adicionarLaudo, atualizarLaudo } = useLaudos();
   const { profile } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"analise" | "cliente" | "interna">(
@@ -48,7 +48,10 @@ export function LaudoTecnico() {
     codigo: "",
     descricao: "",
     nfInterna: "",
-    quantidade: "1"
+    quantidade: "1",
+    referencia: "",
+    fabricante: "",
+    dataKit: ""
   });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,9 +151,9 @@ export function LaudoTecnico() {
         itemAvaliado: "",
         avaliacaoItem: "",
         acao: "",
-        referencia: "",
-        fabricante: "",
-        dataKit: "",
+        referencia: newItem.referencia,
+        fabricante: newItem.fabricante,
+        dataKit: newItem.dataKit,
         itemReaproveitado: ""
       });
     }
@@ -160,24 +163,41 @@ export function LaudoTecnico() {
       produtos: [...formData.produtos, ...newProducts]
     });
 
-    setNewItem({ codigo: "", descricao: "", nfInterna: "", quantidade: "1" });
-    toast.success("Produto adicionado manualmente!");
+    setNewItem({
+      codigo: "",
+      descricao: "",
+      nfInterna: "",
+      quantidade: "1",
+      referencia: "",
+      fabricante: "",
+      dataKit: ""
+    });
+    toast.success("Produto(s) adicionado(s)!");
   };
 
-  const handleSubmit = () => {
-    adicionarLaudo({
+  const handleSubmit = async () => {
+    const laudoData = {
       cliente: formData.cliente,
       nfGarantia: formData.nfGarantia,
       data: formData.data,
       nfInterna: formData.nfInterna,
       produtos: formData.produtos,
       pagamento,
-      statusLaudo: "aberto",
+      statusLaudo: "aberto" as const,
       responsavel: formData.responsavel
-    });
+    };
 
-    toast.success("Laudo salvo nos itens em aberto!");
-    navigate("/laudos-abertos");
+    if (importedData?.id) {
+      await atualizarLaudo(importedData.id, laudoData);
+      toast.success("Laudo atualizado com sucesso!");
+      navigate("/laudos-abertos");
+    } else {
+      const id = await adicionarLaudo(laudoData);
+      if (id) {
+        toast.success("Laudo salvo nos itens em aberto!");
+        navigate("/laudos-abertos");
+      }
+    }
   };
 
   const handlePrint = (elementId: string) => {
@@ -277,7 +297,6 @@ export function LaudoTecnico() {
         x.codigo === p.codigo &&
         x.status === statusLabel &&
         x.item === item &&
-        x.itemReap === itemReap &&
         x.avaliacao === avaliacao &&
         x.acao === acao
       );
@@ -292,7 +311,6 @@ export function LaudoTecnico() {
           qtde: qty,
           status: statusLabel,
           item: item,
-          itemReap: itemReap,
           avaliacao: avaliacao,
           acao: acao
         });
@@ -360,7 +378,7 @@ export function LaudoTecnico() {
   const totalReprovadas = formData.produtos?.filter((p: any) => p.recebido && p.status === 'nao-procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200">
         <button
@@ -454,8 +472,8 @@ export function LaudoTecnico() {
               <div className="flex items-center justify-between mb-4 pb-2 border-b">
                 <h4 className="text-md font-medium text-gray-700">Produtos do XML / Manual</h4>
                 <div className="flex gap-2">
-                  <label className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-md hover:bg-green-100 transition-colors cursor-pointer text-xs font-medium">
-                    <FileDown size={14} />
+                  <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition-all cursor-pointer text-sm font-bold active:scale-95">
+                    <FileDown size={18} />
                     Importar XML
                     <input type="file" accept=".xml" onChange={handleFileSelect} className="hidden" />
                   </label>
@@ -464,53 +482,85 @@ export function LaudoTecnico() {
 
               {/* Formulário de Adição Manual */}
               <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  <div className="md:col-span-2">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Código</label>
                     <input
                       type="text"
                       value={newItem.codigo}
                       onChange={(e) => setNewItem({ ...newItem, codigo: e.target.value })}
                       placeholder="92.357"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-3">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Descrição</label>
                     <input
                       type="text"
                       value={newItem.descricao}
                       onChange={(e) => setNewItem({ ...newItem, descricao: e.target.value })}
                       placeholder="Descrição do produto"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">NF Interna / Qtd</label>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Referência</label>
+                    <input
+                      type="text"
+                      value={newItem.referencia}
+                      onChange={(e) => setNewItem({ ...newItem, referencia: e.target.value })}
+                      placeholder="Ref"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fabricante</label>
+                    <input
+                      type="text"
+                      value={newItem.fabricante}
+                      onChange={(e) => setNewItem({ ...newItem, fabricante: e.target.value })}
+                      placeholder="Fabricante"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Data Kit</label>
+                    <input
+                      type="text"
+                      value={newItem.dataKit}
+                      onChange={(e) => setNewItem({ ...newItem, dataKit: e.target.value })}
+                      placeholder="Ano/Mês"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">NF / Qtd</label>
                     <div className="flex gap-1">
                       <input
                         type="text"
                         value={newItem.nfInterna}
                         onChange={(e) => setNewItem({ ...newItem, nfInterna: e.target.value })}
                         placeholder="NF"
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                       />
                       <input
                         type="number"
                         min="1"
                         value={newItem.quantidade}
                         onChange={(e) => setNewItem({ ...newItem, quantidade: e.target.value })}
-                        className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 text-center"
+                        className="w-12 px-1 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 text-center"
                       />
                     </div>
                   </div>
-                  <button
-                    onClick={handleAddManualItem}
-                    className="h-9 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
-                  >
-                    <Plus size={16} />
-                    Adicionar
-                  </button>
+                  <div className="md:col-span-12 lg:col-span-1 flex justify-end">
+                    <button
+                      onClick={handleAddManualItem}
+                      className="h-8 px-4 w-full lg:w-auto bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-xs font-bold shadow-sm"
+                    >
+                      <Plus size={14} />
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -765,11 +815,13 @@ export function LaudoTecnico() {
                     <div className="mb-2 font-bold uppercase">Pagamento:</div>
                     <div className="flex gap-4 justify-center">
                       <label className="flex items-center gap-1 cursor-pointer">
-                        <input type="radio" name="pagamento_preview" checked={pagamento === "garantia"} onChange={() => setPagamento("garantia")} className="w-3 h-3" />
+                        <input type="radio" name="pagamento_preview" checked={pagamento === "garantia"} onChange={() => setPagamento("garantia")} className="w-3 h-3 print:hidden" />
+                        <span className="hidden print:inline">({pagamento === "garantia" ? "X" : " "})</span>
                         <span>Garantia</span>
                       </label>
                       <label className="flex items-center gap-1 cursor-pointer">
-                        <input type="radio" name="pagamento_preview" checked={pagamento === "bonificacao"} onChange={() => setPagamento("bonificacao")} className="w-3 h-3" />
+                        <input type="radio" name="pagamento_preview" checked={pagamento === "bonificacao"} onChange={() => setPagamento("bonificacao")} className="w-3 h-3 print:hidden" />
+                        <span className="hidden print:inline">({pagamento === "bonificacao" ? "X" : " "})</span>
                         <span>Bonificação</span>
                       </label>
                     </div>

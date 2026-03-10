@@ -1,23 +1,57 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, FileEdit, Trash2, CheckCircle, FileText, Lock } from "lucide-react";
+import { Plus, Search, FileEdit, Trash2, CheckCircle, FileText, Lock, Loader2 } from "lucide-react";
 import { useLaudos } from "../contexts/LaudosContext";
 import { toast } from "sonner";
 
 export function LaudosAbertos() {
     const navigate = useNavigate();
-    const { laudos, removerLaudo, atualizarLaudo } = useLaudos();
+    const { laudos, removerLaudo, atualizarLaudo, loading } = useLaudos();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("todos");
 
-    // Filtrar apenas os laudos em aberto
+    // Filtrar apenas os laudos em aberto e aplicar filtros
     const laudosExibidos = laudos
-        .filter(l => l.statusLaudo === 'aberto')
-        .map(l => ({
-            id: l.id,
-            cliente: l.cliente,
-            produto: l.produtos?.[0]?.descricao || "Vários produtos", // Pega o primeiro como resumo
-            nfGarantia: l.nfGarantia,
-            status: 'Em aberto',
-            data: new Date(l.data).toLocaleDateString('pt-BR'),
-        }));
+        .filter(l => {
+            const matchesStatus = statusFilter === "todos" ||
+                (statusFilter === "aberto" && l.statusLaudo === 'aberto') ||
+                (statusFilter === "finalizado" && l.statusLaudo === 'finalizado');
+
+            const searchLower = searchTerm.toLowerCase();
+            const matchesSearch = !searchTerm ||
+                l.cliente?.toLowerCase().includes(searchLower) ||
+                l.nfGarantia?.toLowerCase().includes(searchLower) ||
+                l.produtos?.some((p: any) =>
+                    p.descricao?.toLowerCase().includes(searchLower) ||
+                    p.codigo?.toLowerCase().includes(searchLower)
+                );
+
+            return matchesStatus && matchesSearch;
+        })
+        .map(l => {
+            let dataFormatada = "";
+            try {
+                if (l.data.includes('T')) {
+                    // ISO string do banco
+                    dataFormatada = new Date(l.data).toLocaleDateString('pt-BR');
+                } else {
+                    // Formato YYYY-MM-DD vindo do formulário (evita shift de fuso)
+                    const [year, month, day] = l.data.split('-').map(Number);
+                    dataFormatada = new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+                }
+            } catch (e) {
+                dataFormatada = l.data;
+            }
+
+            return {
+                id: l.id,
+                cliente: l.cliente,
+                produto: l.produtos?.[0]?.descricao || "Vários produtos", // Pega o primeiro como resumo
+                nfGarantia: l.nfGarantia,
+                status: l.statusLaudo === 'finalizado' ? 'Finalizado' : 'Em aberto',
+                data: dataFormatada,
+            };
+        });
 
     const columns = [
         { key: "id", label: "ID Laudo" },
@@ -30,21 +64,33 @@ export function LaudosAbertos() {
 
     const handleEdit = (item: any, aba: "cliente" | "interna" | "analise" = "analise") => {
         const laudoCompleto = laudos.find(l => l.id === item.id);
-        navigate("/nova-analise", { state: { ...laudoCompleto, abaOrigem: aba } });
+        if (aba === "analise") {
+            navigate("/nova-analise", { state: { ...laudoCompleto, abaOrigem: aba } });
+        } else {
+            navigate(`/laudo/${item.id}`, { state: { ...laudoCompleto, abaOrigem: aba } });
+        }
     };
 
-    const handleFecharLaudo = (item: any) => {
+    const handleFecharLaudo = async (item: any) => {
         if (window.confirm("Deseja fechar este laudo e marcá-lo como finalizado? O laudo irá para o Histórico e sairá desta tela em breve.")) {
-            atualizarLaudo(item.id, { statusLaudo: 'finalizado' });
+            await atualizarLaudo(item.id, { statusLaudo: 'finalizado' });
             toast.success("Laudo marcado como finalizado!");
         }
     };
 
-    const handleDelete = (item: any) => {
+    const handleDelete = async (item: any) => {
         if (window.confirm("Deseja realmente excluir este laudo em aberto?")) {
-            removerLaudo(item.id);
+            await removerLaudo(item.id);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -68,11 +114,17 @@ export function LaudosAbertos() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Buscar por cliente, NF ou status..."
+                            placeholder="Buscar por cliente, NF ou produto..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
-                    <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    >
                         <option value="todos">Todos os status</option>
                         <option value="aberto">Em aberto</option>
                         <option value="finalizado">Finalizados</option>

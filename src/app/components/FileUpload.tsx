@@ -40,11 +40,10 @@ export function FileUpload({ onFileSelect, accept = ".xml", label = "Arraste o X
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-        isDragging
+      className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${isDragging
           ? "border-blue-500 bg-blue-50"
           : "border-gray-300 bg-gray-50 hover:border-gray-400"
-      }`}
+        }`}
     >
       <Upload size={48} className="mx-auto mb-4 text-gray-400" />
       <p className="text-gray-600 mb-4">{label}</p>
@@ -55,7 +54,7 @@ export function FileUpload({ onFileSelect, accept = ".xml", label = "Arraste o X
           onChange={handleFileInput}
           className="hidden"
         />
-        <span className="px-6 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors inline-block">
+        <span className="px-8 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 shadow-md transition-all inline-block font-bold text-lg active:scale-95">
           Selecionar arquivo
         </span>
       </label>

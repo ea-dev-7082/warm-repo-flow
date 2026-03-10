@@ -1,102 +1,174 @@
 import { MetricCard } from "./MetricCard";
 import { DataTable } from "./DataTable";
-import { FileText, CheckCircle, XCircle, Package, Plus } from "lucide-react";
+import { FileText, CheckCircle, XCircle, Package, Plus, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { startOfMonth, endOfMonth } from "date-fns";
 
-const metricsData = [
-  {
-    title: "Garantias recebidas no mês",
-    value: "127",
-    icon: FileText,
-    iconColor: "text-blue-500",
-  },
-  {
-    title: "Procedentes",
-    value: "78",
-    icon: CheckCircle,
-    iconColor: "text-green-500",
-  },
-  {
-    title: "Não procedentes",
-    value: "49",
-    icon: XCircle,
-    iconColor: "text-red-500",
-  },
-  {
-    title: "Produto com mais ocorrências",
-    value: "Motor X500",
-    icon: Package,
-    iconColor: "text-orange-500",
-  },
-];
+interface DashboardMetric {
+  title: string;
+  value: string;
+  icon: any;
+  iconColor: string;
+}
 
-const chartData = [
-  { produto: "Motor X500", quantidade: 45 },
-  { produto: "Suspensão Y200", quantidade: 32 },
-  { produto: "Freio Z300", quantidade: 28 },
-  { produto: "Sistema Elétrico", quantidade: 22 },
-  { produto: "Lubrificante L100", quantidade: 15 },
-];
-
-const recentMovements = [
-  {
-    cliente: "Distribuidora ABC",
-    produto: "Motor X500",
-    nfGarantia: "12345",
-    status: "Procedente",
-    data: "04/03/2026",
-  },
-  {
-    cliente: "Autopeças Silva",
-    produto: "Suspensão Y200",
-    nfGarantia: "12346",
-    status: "Em análise",
-    data: "04/03/2026",
-  },
-  {
-    cliente: "Mecânica Souza",
-    produto: "Freio Z300",
-    nfGarantia: "12347",
-    status: "Não procedente",
-    data: "03/03/2026",
-  },
-  {
-    cliente: "Auto Center Norte",
-    produto: "Motor X500",
-    nfGarantia: "12348",
-    status: "Procedente",
-    data: "03/03/2026",
-  },
-  {
-    cliente: "Peças Brasil",
-    produto: "Sistema Elétrico",
-    nfGarantia: "12349",
-    status: "Em análise",
-    data: "02/03/2026",
-  },
-];
-
-const columns = [
-  { key: "cliente", label: "Cliente" },
-  { key: "produto", label: "Produto" },
-  { key: "nfGarantia", label: "NF Garantia" },
-  { key: "status", label: "Status" },
-  { key: "data", label: "Data" },
-];
+interface ChartDataItem {
+  produto: string;
+  quantidade: number;
+}
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<DashboardMetric[]>([]);
+  const [chartData, setChartData] = useState<ChartDataItem[]>([]);
+  const [recentMovements, setRecentMovements] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setLoading(true);
+
+        // 1. Fetch Metrics Data
+        const now = new Date();
+        const start = startOfMonth(now).toISOString();
+        const end = endOfMonth(now).toISOString();
+
+        const { data: monthData, error: monthError } = await supabase
+          .from("laudos")
+          .select("status, produto_descricao")
+          .gte("created_at", start)
+          .lte("created_at", end);
+
+        if (monthError) throw monthError;
+
+        const procedentesCount = monthData?.filter(item => item.status === "Procedente").length || 0;
+        const naoProcedentesCount = monthData?.filter(item => item.status === "Não procedente").length || 0;
+
+        // Calculate product with most occurrences
+        const productCounts: Record<string, number> = {};
+        monthData?.forEach(item => {
+          productCounts[item.produto_descricao] = (productCounts[item.produto_descricao] || 0) + 1;
+        });
+
+        const topProduct = Object.entries(productCounts)
+          .sort(([, a], [, b]) => b - a)[0]?.[0] || "Nenhum";
+
+        setMetrics([
+          {
+            title: "Garantias recebidas no mês",
+            value: (monthData?.length || 0).toString(),
+            icon: FileText,
+            iconColor: "text-blue-500",
+          },
+          {
+            title: "Procedentes",
+            value: procedentesCount.toString(),
+            icon: CheckCircle,
+            iconColor: "text-green-500",
+          },
+          {
+            title: "Não procedentes",
+            value: naoProcedentesCount.toString(),
+            icon: XCircle,
+            iconColor: "text-red-500",
+          },
+          {
+            title: "Produto com mais ocorrências",
+            value: topProduct,
+            icon: Package,
+            iconColor: "text-orange-500",
+          },
+        ]);
+
+        // 2. Fetch Chart Data (Top 5 products overall)
+        const { data: allData, error: allError } = await supabase
+          .from("laudos")
+          .select("produto_descricao");
+
+        if (allError) throw allError;
+
+        const allProductCounts: Record<string, number> = {};
+        allData?.forEach(item => {
+          allProductCounts[item.produto_descricao] = (allProductCounts[item.produto_descricao] || 0) + 1;
+        });
+
+        const formattedChartData = Object.entries(allProductCounts)
+          .map(([produto, quantidade]) => ({ produto, quantidade }))
+          .sort((a, b) => b.quantidade - a.quantidade)
+          .slice(0, 5);
+
+        setChartData(formattedChartData);
+
+        // 3. Fetch Recent Movements
+        const { data: recentData, error: recentError } = await supabase
+          .from("laudos")
+          .select("id, cliente_nome, produto_descricao, nf_garantia, status, created_at, responsavel_nome, xml_dados")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (recentError) throw recentError;
+
+        setRecentMovements(recentData?.map(item => {
+          const xmlDados = (item.xml_dados as any) || {};
+          return {
+            id: item.id,
+            cliente: item.cliente_nome,
+            produto: item.produto_descricao,
+            nfGarantia: item.nf_garantia,
+            status: item.status,
+            data: new Date(xmlDados.data || item.created_at).toLocaleDateString("pt-BR"),
+            // Store the full object for navigation
+            fullData: {
+              id: item.id,
+              cliente: item.cliente_nome,
+              nfGarantia: item.nf_garantia,
+              data: xmlDados.data || item.created_at,
+              statusLaudo: (item.status === 'Finalizado' || item.status === 'finalizado') ? 'finalizado' : 'aberto',
+              responsavel: item.responsavel_nome || undefined,
+              produtos: xmlDados.produtos || [],
+              ...xmlDados,
+            }
+          };
+        }) || []);
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
 
   const handleViewReport = (item: any) => {
-    navigate(`/laudo/${item.nfGarantia}`);
+    navigate(`/laudo/${item.id}`, { state: item.fullData });
   };
+
+  const columns = [
+    { key: "cliente", label: "Cliente" },
+    { key: "produto", label: "Produto" },
+    { key: "nfGarantia", label: "NF Garantia" },
+    { key: "status", label: "Status" },
+    { key: "data", label: "Data" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[600px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metricsData.map((metric, index) => (
+        {metrics.map((metric, index) => (
           <MetricCard key={index} {...metric} />
         ))}
       </div>
