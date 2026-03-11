@@ -113,12 +113,12 @@ export function WarrantyReportDetails() {
         const parsed = JSON.parse(p.fabricante);
         const entries = Object.entries(parsed).filter(([_, v]) => v);
         if (entries.length > 0) {
-           parsedFabStr = entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+          parsedFabStr = entries.map(([k, v]) => `${k}: ${v}`).join(', ');
         } else {
-           parsedFabStr = '-';
+          parsedFabStr = '-';
         }
       }
-    } catch(e) {}
+    } catch (e) { }
     const fabricante = parsedFabStr;
     const dataKit = p.dataKit || '-';
 
@@ -218,36 +218,36 @@ export function WarrantyReportDetails() {
 
       {activeTab === "cliente" ? (
         /* Laudo Cliente - formato de documento */
-        <div className="bg-white p-8 shadow-lg border-2 border-gray-900 max-w-5xl mx-auto">
+        <div className="bg-white p-10 shadow-lg border-2 border-gray-900 max-w-[1100px] print:max-w-full mx-auto">
           {/* Cabeçalho */}
           <div className="border-2 border-gray-900 mb-0">
             <div className="grid grid-cols-3 border-b-2 border-gray-900">
-              <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
-                <div className="text-2xl font-bold text-blue-900">COMKIT</div>
+              <div className="border-r-2 border-gray-900 p-4 flex items-center justify-center">
+                <div className="text-3xl font-bold text-blue-900">COMKIT</div>
               </div>
-              <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
-                <h1 className="text-sm font-bold text-center">
+              <div className="border-r-2 border-gray-900 p-4 flex items-center justify-center">
+                <h1 className="text-base font-bold text-center">
                   RELATÓRIO DE ANÁLISE DE GARANTIA
                 </h1>
               </div>
-              <div className="p-3">
+              <div className="p-4">
                 <div className="text-xs font-bold mb-1">DATA</div>
-                <div className="text-sm">{dataFormatada}</div>
+                <div className="text-base">{dataFormatada}</div>
               </div>
             </div>
 
             {/* Linha de informações principais */}
-            <div className="grid grid-cols-5 border-b-2 border-gray-900 text-sm">
-              <div className="border-r-2 border-gray-900 p-2">
+            <div className="grid grid-cols-5 border-b-2 border-gray-900 text-base">
+              <div className="border-r-2 border-gray-900 p-3">
                 <div className="font-bold">CLIENTE:</div>
               </div>
-              <div className="border-r-2 border-gray-900 p-2 text-center col-span-2">
+              <div className="border-r-2 border-gray-900 p-3 text-center col-span-2">
                 <div>{dynamicData.cliente}</div>
               </div>
-              <div className="border-r-2 border-gray-900 p-2">
+              <div className="border-r-2 border-gray-900 p-3">
                 <div className="font-bold">NOTA Nº</div>
               </div>
-              <div className="p-2 text-center">
+              <div className="p-3 text-center">
                 <div>{dynamicData.nfGarantia}</div>
               </div>
             </div>
@@ -262,22 +262,22 @@ export function WarrantyReportDetails() {
             {/* Cabeçalho da tabela */}
             <div className="grid grid-cols-6 border-b-2 border-gray-900 bg-gray-50">
               <div className="border-r-2 border-gray-900 p-2 text-center">
-                <div className="text-[10px] font-bold">PRODUTO</div>
+                <div className="text-xs font-bold">PRODUTO</div>
               </div>
               <div className="border-r-2 border-gray-900 p-2 text-center">
-                <div className="text-[10px] font-bold">QTD</div>
+                <div className="text-xs font-bold">QTD</div>
               </div>
               <div className="border-r-2 border-gray-900 p-2 text-center">
-                <div className="text-[10px] font-bold">STATUS</div>
+                <div className="text-xs font-bold">STATUS</div>
               </div>
               <div className="border-r-2 border-gray-900 p-2 text-center">
-                <div className="text-[10px] font-bold">ITEM AVALIADO</div>
+                <div className="text-xs font-bold">ITEM AVALIADO</div>
               </div>
               <div className="border-r-2 border-gray-900 p-2 text-center">
-                <div className="text-[10px] font-bold">AVALIAÇÃO</div>
+                <div className="text-xs font-bold">AVALIAÇÃO</div>
               </div>
               <div className="p-2 text-center">
-                <div className="text-[10px] font-bold">AÇÃO</div>
+                <div className="text-xs font-bold">RESOLUÇÃO</div>
               </div>
             </div>
 
@@ -288,26 +288,26 @@ export function WarrantyReportDetails() {
                 className={`grid grid-cols-6 ${index < groupedProdutosCliente.length - 1
                   ? "border-b border-gray-900"
                   : ""
-                  } text-[10px] min-h-[40px]`}
+                  } text-xs min-h-[45px]`}
               >
-                <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold">
+                <div className="border-r-2 border-gray-900 p-2 text-center flex items-center justify-center font-bold text-sm">
                   {produto.codigo}
                 </div>
-                <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center">
+                <div className="border-r-2 border-gray-900 p-2 text-center flex items-center justify-center">
                   {produto.qtde}
                 </div>
-                <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center whitespace-nowrap">
+                <div className="border-r-2 border-gray-900 p-2 text-center flex items-center justify-center whitespace-nowrap">
                   {produto.status}
                 </div>
-                <div className="border-r-2 border-gray-900 p-1 flex flex-col items-start pl-2 italic leading-tight">
+                <div className="border-r-2 border-gray-900 p-2 flex flex-col items-start pl-3 italic leading-tight">
                   <div className="flex flex-col">
                     <span>{produto.item}</span>
                   </div>
                 </div>
-                <div className="border-r-2 border-gray-900 p-1 flex items-center pl-2">
+                <div className="border-r-2 border-gray-900 p-2 flex items-center pl-3">
                   {produto.avaliacao}
                 </div>
-                <div className="p-1 text-center font-bold flex items-center justify-center uppercase">
+                <div className="p-2 text-center font-bold flex items-center justify-center uppercase">
                   {produto.acao}
                 </div>
               </div>
@@ -331,13 +331,13 @@ export function WarrantyReportDetails() {
           </div>
 
           {/* Seção de assinaturas */}
-          <div className="border-2 border-t-0 border-gray-900 mt-0 text-sm">
-            <div className="grid grid-cols-2 border-b border-gray-900 text-xs">
-              <div className="border-r border-gray-900 p-3">
+          <div className="border-2 border-t-0 border-gray-900 mt-0 text-base">
+            <div className="grid grid-cols-2 border-b border-gray-900 text-sm">
+              <div className="border-r border-gray-900 p-4">
                 <div className="mb-2">
                   <strong>PAGAMENTO:</strong>
                 </div>
-                <div className="flex gap-4 ml-4">
+                <div className="flex gap-6 ml-4">
                   <label className="flex items-center gap-1">
                     <span>({dynamicData.pagamento === "garantia" ? "X" : " "})</span> Garantia
                   </label>
@@ -346,34 +346,34 @@ export function WarrantyReportDetails() {
                   </label>
                 </div>
               </div>
-              <div className="p-3">
+              <div className="p-4">
                 <strong>CLIENTE:</strong> {dynamicData.cliente}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 border-b border-gray-900 text-xs text-left">
-              <div className="border-r border-gray-900 p-3">
+            <div className="grid grid-cols-2 border-b border-gray-900 text-sm text-left">
+              <div className="border-r border-gray-900 p-4">
                 <strong>DATA:</strong> {dataFormatada}
               </div>
-              <div className="p-3">
+              <div className="p-4">
                 <strong>VALIDADO POR:</strong>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 text-xs">
-              <div className="border-r border-gray-900 p-3 text-left">
+            <div className="grid grid-cols-2 text-sm">
+              <div className="border-r border-gray-900 p-4 text-left">
                 <strong>DOC:</strong> {dynamicData.nfGarantia}
               </div>
-              <div className="p-3">
+              <div className="p-4">
                 <strong>AUTORIZADO POR:</strong>
               </div>
             </div>
           </div>
 
           {/* Rodapé */}
-          <div className="mt-8 text-center text-xs">
-            <div className="border-t border-gray-400 w-64 mx-auto mb-2"></div>
-            <div className="font-bold">{dynamicData.responsavel || profile?.nome || "Responsável"}</div>
+          <div className="mt-10 text-center text-sm">
+            <div className="border-t border-gray-400 w-72 mx-auto mb-2"></div>
+            <div className="font-bold text-base">{dynamicData.responsavel || profile?.nome || "Responsável"}</div>
             <div className="mt-1">Departamento de Qualidade e Garantia</div>
             <div>Automotriz Indústria e Comércio de Peças Automotivas</div>
             <div>Tel(21) 96480-3390</div>
@@ -381,65 +381,65 @@ export function WarrantyReportDetails() {
         </div>
       ) : (
         /* Laudo Interno - formato de documento */
-        <div className="bg-white p-8 shadow-lg border-2 border-gray-900 max-w-5xl mx-auto">
+        <div className="bg-white p-10 shadow-lg border-2 border-gray-900 max-w-[1100px] print:max-w-full mx-auto">
           <div className="border-2 border-gray-900 mb-0">
             <div className="grid grid-cols-3 border-b-2 border-gray-900">
-              <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center text-center">
+              <div className="border-r-2 border-gray-900 p-4 flex items-center justify-center text-center">
                 <div>
-                  <div className="text-xl font-bold text-blue-900">COMKIT</div>
-                  <div className="text-[8px] uppercase">Controle Interno</div>
+                  <div className="text-3xl font-bold text-blue-900">COMKIT</div>
+                  <div className="text-[10px] uppercase">Controle Interno</div>
                 </div>
               </div>
-              <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
-                <h1 className="text-sm font-bold text-center">LAUDO FINAL DE GARANTIA (INTERNO)</h1>
+              <div className="border-r-2 border-gray-900 p-4 flex items-center justify-center">
+                <h1 className="text-base font-bold text-center">LAUDO FINAL DE GARANTIA (INTERNO)</h1>
               </div>
-              <div className="p-3">
-                <div className="text-xs font-bold mb-1 uppercase text-red-600 italic">INTERNO</div>
-                <div className="text-sm">{dataFormatada}</div>
+              <div className="p-4">
+                <div className="text-[10px] font-bold mb-1 uppercase text-red-600 italic">INTERNO</div>
+                <div className="text-base">{dataFormatada}</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-5 border-b-2 border-gray-900 text-sm">
-              <div className="border-r-2 border-gray-900 p-2"><div className="font-bold">CLIENTE:</div></div>
-              <div className="border-r-2 border-gray-900 p-2 text-center col-span-2"><div>{dynamicData.cliente}</div></div>
-              <div className="border-r-2 border-gray-900 p-2"><div className="font-bold">NOTA Nº</div></div>
-              <div className="p-2 text-center"><div>{dynamicData.nfGarantia}</div></div>
+            <div className="grid grid-cols-5 border-b-2 border-gray-900 text-base">
+              <div className="border-r-2 border-gray-900 p-3"><div className="font-bold">CLIENTE:</div></div>
+              <div className="border-r-2 border-gray-900 p-3 text-center col-span-2"><div>{dynamicData.cliente}</div></div>
+              <div className="border-r-2 border-gray-900 p-3"><div className="font-bold">NOTA Nº</div></div>
+              <div className="p-3 text-center"><div>{dynamicData.nfGarantia}</div></div>
             </div>
 
             <div className="grid grid-cols-12 border-b-2 border-gray-900 bg-gray-100 uppercase">
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">CÓDIGO</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] col-span-2 flex items-center justify-center">DESCRIÇÃO</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">REFERÊNCIA</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">FABRICANTE</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DATA KIT</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">QTD</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">NF</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">STATUS</div>
-              <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">AÇÃO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">CÓDIGO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] col-span-2 flex items-center justify-center">DESCRIÇÃO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">REFERÊNCIA</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">FABRICANTE</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">DATA KIT</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">QTD</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">NF</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[10px] flex items-center justify-center">STATUS</div>
+              <div className="p-1 text-center font-bold text-[10px] flex items-center justify-center">RESOLUÇÃO</div>
             </div>
 
             {groupedProdutosInterna.map((p: any, index: number) => (
-              <div key={index} className={`grid grid-cols-12 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`}>
+              <div key={index} className={`grid grid-cols-12 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-xs min-h-[40px]`}>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">{p.codigo}</div>
                 <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 col-span-2 leading-tight bg-white">{p.descricao}</div>
                 <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
-                  <span className="text-[9px] text-center">{p.referencia === '-' ? '' : p.referencia}</span>
+                  <span className="text-xs text-center">{p.referencia === '-' ? '' : p.referencia}</span>
                 </div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
-                  <span className="text-[8px] text-red-600 font-bold">{p.item === '-' ? '' : p.item}</span>
+                  <span className="text-[10px] text-red-600 font-bold">{p.item === '-' ? '' : p.item}</span>
                 </div>
                 <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
-                  <span className="text-[9px] text-center">{p.fabricante === '-' ? '' : p.fabricante}</span>
+                  <span className="text-xs text-center">{p.fabricante === '-' ? '' : p.fabricante}</span>
                 </div>
                 <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
-                  <span className="text-[9px] text-center">{p.dataKit === '-' ? '' : p.dataKit}</span>
+                  <span className="text-xs text-center">{p.dataKit === '-' ? '' : p.dataKit}</span>
                 </div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center bg-white">{p.qtde}</div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center italic text-blue-700 bg-white">{p.nfInterna}</div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
-                  <span className="text-[8px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
+                  <span className="text-[10px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
                 </div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white">
                   {p.status}
@@ -457,11 +457,11 @@ export function WarrantyReportDetails() {
             </div>
           </div>
 
-          <div className="border-2 border-t-0 border-gray-900 mt-0 text-sm">
-            <div className="grid grid-cols-2 border-b border-gray-900 text-xs text-center">
-              <div className="border-r border-gray-900 p-3">
+          <div className="border-2 border-t-0 border-gray-900 mt-0 text-base">
+            <div className="grid grid-cols-2 border-b border-gray-900 text-sm text-center">
+              <div className="border-r border-gray-900 p-4">
                 <div className="mb-2 font-bold uppercase">Pagamento:</div>
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-6 justify-center">
                   <span className="flex items-center gap-1">
                     <span>({dynamicData.pagamento === "garantia" ? "X" : " "})</span> Garantia
                   </span>
@@ -470,30 +470,30 @@ export function WarrantyReportDetails() {
                   </span>
                 </div>
               </div>
-              <div className="p-3">
+              <div className="p-4">
                 <div className="font-bold uppercase mb-4">Cliente:</div>
-                <div className="text-xs mb-1">{dynamicData.cliente}</div>
-                <div className="border-t border-gray-400 w-32 mx-auto"></div>
+                <div className="text-sm mb-1">{dynamicData.cliente}</div>
+                <div className="border-t border-gray-400 w-48 mx-auto"></div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 border-b border-gray-900 text-xs h-12 text-left">
-              <div className="border-r border-gray-900 p-2">
+            <div className="grid grid-cols-2 border-b border-gray-900 text-sm h-16 text-left">
+              <div className="border-r border-gray-900 p-3">
                 <div className="font-bold uppercase">Data: {dataFormatada}</div>
               </div>
-              <div className="p-2">
+              <div className="p-3">
                 <div className="font-bold uppercase mb-4 text-center">Validado por:</div>
-                <div className="border-t border-gray-400 w-32 mx-auto"></div>
+                <div className="border-t border-gray-400 w-48 mx-auto"></div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 text-xs h-12 text-left">
-              <div className="border-r border-gray-900 p-2">
+            <div className="grid grid-cols-2 text-sm h-16 text-left">
+              <div className="border-r border-gray-900 p-3">
                 <div className="font-bold uppercase">Doc: {dynamicData.nfGarantia}</div>
               </div>
-              <div className="p-2">
+              <div className="p-3">
                 <div className="font-bold uppercase mb-4 text-center">Autorizado por:</div>
-                <div className="border-t border-gray-400 w-32 mx-auto"></div>
+                <div className="border-t border-gray-400 w-48 mx-auto"></div>
               </div>
             </div>
           </div>

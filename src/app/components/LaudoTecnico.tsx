@@ -1050,7 +1050,7 @@ export function LaudoTecnico() {
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">NF</div>
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">STATUS</div>
-                  <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">AÇÃO</div>
+                  <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">RESOLUÇÃO</div>
                 </div>
 
                 {groupedProdutosInterna.map((p: any, index: number) => (
