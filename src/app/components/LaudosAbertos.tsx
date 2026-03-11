@@ -13,9 +13,7 @@ export function LaudosAbertos() {
     // Filtrar apenas os laudos em aberto e aplicar filtros
     const laudosExibidos = laudos
         .filter(l => {
-            const matchesStatus = statusFilter === "todos" ||
-                (statusFilter === "aberto" && l.statusLaudo === 'aberto') ||
-                (statusFilter === "finalizado" && l.statusLaudo === 'finalizado');
+            if (l.statusLaudo === 'finalizado') return false;
 
             const searchLower = searchTerm.toLowerCase();
             const matchesSearch = !searchTerm ||
@@ -26,7 +24,7 @@ export function LaudosAbertos() {
                     p.codigo?.toLowerCase().includes(searchLower)
                 );
 
-            return matchesStatus && matchesSearch;
+            return matchesSearch;
         })
         .map(l => {
             let dataFormatada = "";
@@ -97,7 +95,7 @@ export function LaudosAbertos() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Laudos Abertos</h1>
-                    <p className="text-gray-500 mt-1">Gerencie as análises de garantia em andamento e finalizadas recentemente.</p>
+                    <p className="text-gray-500 mt-1">Gerencie as análises de garantia em andamento.</p>
                 </div>
                 <button
                     onClick={() => navigate("/nova-analise")}
@@ -120,15 +118,6 @@ export function LaudosAbertos() {
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                    >
-                        <option value="todos">Todos os status</option>
-                        <option value="aberto">Em aberto</option>
-                        <option value="finalizado">Finalizados</option>
-                    </select>
                 </div>
 
                 {laudosExibidos.length > 0 ? (
@@ -158,41 +147,20 @@ export function LaudosAbertos() {
                                         <td className="py-4 px-4 text-sm text-gray-600">{item.data}</td>
                                         <td className="py-4 px-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                {item.status !== 'Finalizado' && (
-                                                    <button
-                                                        onClick={() => handleFecharLaudo(item)}
-                                                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Fechar Laudo (Marcar como Finalizado)"
-                                                    >
-                                                        <CheckCircle size={18} />
-                                                    </button>
-                                                )}
-                                                {item.status === 'Finalizado' ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleEdit(item, "cliente")}
-                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
-                                                            title="Ver Laudo Cliente"
-                                                        >
-                                                            <FileText size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleEdit(item, "interna")}
-                                                            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors flex items-center gap-1"
-                                                            title="Ver Laudo Interno"
-                                                        >
-                                                            <Lock size={18} />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleEdit(item, "analise")}
-                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Continuar Análise"
-                                                    >
-                                                        <FileEdit size={18} />
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={() => handleFecharLaudo(item)}
+                                                    className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                    title="Fechar Laudo (Marcar como Finalizado)"
+                                                >
+                                                    <CheckCircle size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEdit(item, "analise")}
+                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Continuar Análise"
+                                                >
+                                                    <FileEdit size={18} />
+                                                </button>
                                                 <button
                                                     onClick={() => handleDelete(item)}
                                                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -1,7 +1,9 @@
-import { Search, FileText, Lock, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Search, FileText, Lock, Loader2, Upload, ExternalLink } from "lucide-react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLaudos } from "../contexts/LaudosContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface HistoricoRowProps {
   item: any;
@@ -14,11 +16,109 @@ function HistoricoRow({ item, index, handleVerLaudo }: HistoricoRowProps) {
   const { atualizarLaudo } = useLaudos();
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveNotaPaga = async () => {
-    if (localNotaPaga === item.originalLaudo.notaPaga) return;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const normalizeName = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+      .replace(/\s+/g, " ") // Normaliza espaços
+      .replace(/\b(ltda|me|eireli|s\/a|sa|epp)\b/g, "") // Remove extensões empresariais comuns
+      .trim();
+  };
+
+  const validateInvoiceContent = async (file: File, expectedName: string): Promise<boolean> => {
+    if (!file.name.toLowerCase().endsWith('.xml')) return true;
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(content, "text/xml");
+          
+          // Busca o nome do destinatário no XML (padrão NFe)
+          const destNameNode = xmlDoc.querySelector("dest > xNome");
+          if (!destNameNode) {
+            console.warn("Campo <xNome> do destinatário não encontrado no XML.");
+            resolve(true); 
+            return;
+          }
+
+          const foundName = destNameNode.textContent || "";
+          const normalizedFound = normalizeName(foundName);
+          const normalizedExpected = normalizeName(expectedName);
+
+          // Verifica se o nome esperado está contido no nome encontrado (ou vice-versa)
+          // Isso ajuda com variações parciais
+          if (normalizedFound.includes(normalizedExpected) || normalizedExpected.includes(normalizedFound)) {
+            resolve(true);
+          } else {
+            const confirmMsg = `Atenção: O nome na nota fiscal ("${foundName}") parece ser diferente do cliente no registro ("${expectedName}").\n\nDeseja anexar este arquivo assim mesmo?`;
+            resolve(window.confirm(confirmMsg));
+          }
+        } catch (e) {
+          console.error("Erro ao validar XML:", e);
+          resolve(true);
+        }
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isValid = await validateInvoiceContent(file, item.cliente);
+    if (!isValid) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setIsSaving(true);
-    await atualizarLaudo(item.id, { notaPaga: localNotaPaga });
-    setIsSaving(false);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${item.id}-${Math.random()}.${fileExt}`;
+      const filePath = fileName;
+
+      const { error: uploadError } = await supabase.storage
+        .from('notas')
+        .upload(filePath, file, {
+          upsert: true
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('notas')
+        .getPublicUrl(filePath);
+
+      await atualizarLaudo(item.id, { notaPaga: publicUrl });
+      setLocalNotaPaga(publicUrl);
+      toast.success("Nota anexada com sucesso!");
+    } catch (error: any) {
+      console.error("Erro detalhado ao fazer upload da nota:", error);
+      
+      let errorMsg = `Erro ao anexar: ${error.message || "Tente novamente"}`;
+      
+      if (error.message === 'bucket_not_found' || error.status === 404 || error.error === 'Bucket not found') {
+        errorMsg = "Configuração pendente: O bucket 'notas' não foi encontrado no Supabase.";
+      } else if (error.message?.toLowerCase().includes('row-level security') || error.message?.includes('RLS')) {
+        errorMsg = "Erro de permissão: Verifique as políticas de RLS no bucket 'notas'.";
+      }
+
+      toast.error(errorMsg);
+    } finally {
+      setIsSaving(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -34,15 +134,44 @@ function HistoricoRow({ item, index, handleVerLaudo }: HistoricoRowProps) {
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         <div className="flex items-center gap-2">
+          {localNotaPaga && localNotaPaga.startsWith('http') ? (
+            <div className="flex items-center gap-2">
+              <a
+                href={localNotaPaga}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs font-semibold"
+                title="Visualizar Nota"
+              >
+                <ExternalLink size={16} />
+                Ver Nota
+              </a>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSaving}
+                className="text-gray-400 hover:text-gray-600 ml-2"
+                title="Substituir Nota"
+              >
+                <Upload size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSaving}
+              className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs transition-colors border border-gray-300 disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={14} />}
+              <span>Anexar Nota</span>
+            </button>
+          )}
           <input
-            type="text"
-            value={localNotaPaga}
-            onChange={(e) => setLocalNotaPaga(e.target.value)}
-            onBlur={handleSaveNotaPaga}
-            placeholder="Nº Nota"
-            className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent text-sm"
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            accept=".xml,pdf,image/*"
           />
-          {isSaving && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

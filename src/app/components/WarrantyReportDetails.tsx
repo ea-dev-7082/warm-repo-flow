@@ -107,7 +107,19 @@ export function WarrantyReportDetails() {
     const descricao = p.descricao || '-';
     const nf = p.nfInterna || '-';
     const referencia = p.referencia || '-';
-    const fabricante = p.fabricante || '-';
+    let parsedFabStr = p.fabricante || '-';
+    try {
+      if (typeof p.fabricante === 'string' && p.fabricante.startsWith('{')) {
+        const parsed = JSON.parse(p.fabricante);
+        const entries = Object.entries(parsed).filter(([_, v]) => v);
+        if (entries.length > 0) {
+           parsedFabStr = entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+        } else {
+           parsedFabStr = '-';
+        }
+      }
+    } catch(e) {}
+    const fabricante = parsedFabStr;
     const dataKit = p.dataKit || '-';
 
     const existing = acc.find((x: any) =>
@@ -394,36 +406,43 @@ export function WarrantyReportDetails() {
               <div className="p-2 text-center"><div>{dynamicData.nfGarantia}</div></div>
             </div>
 
-            <div className="grid grid-cols-10 border-b-2 border-gray-900 bg-gray-100 uppercase">
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">CÓDIGO</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] col-span-2">DESCRIÇÃO</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">REFERÊNCIA</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">FABRICANTE</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">DATA KIT</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">QTD</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">NF</div>
-              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">STATUS</div>
-              <div className="p-1 text-center font-bold text-[9px]">AÇÃO</div>
+            <div className="grid grid-cols-12 border-b-2 border-gray-900 bg-gray-100 uppercase">
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">CÓDIGO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] col-span-2 flex items-center justify-center">DESCRIÇÃO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">REFERÊNCIA</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">FABRICANTE</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DATA KIT</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">QTD</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">NF</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
+              <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">STATUS</div>
+              <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">AÇÃO</div>
             </div>
 
             {groupedProdutosInterna.map((p: any, index: number) => (
-              <div key={index} className={`grid grid-cols-10 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`}>
+              <div key={index} className={`grid grid-cols-12 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`}>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">{p.codigo}</div>
                 <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 col-span-2 leading-tight bg-white">{p.descricao}</div>
-                <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white text-center">
-                  {p.referencia === '-' ? '' : p.referencia}
+                <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
+                  <span className="text-[9px] text-center">{p.referencia === '-' ? '' : p.referencia}</span>
                 </div>
-                <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white text-center">
-                  {p.fabricante === '-' ? '' : p.fabricante}
+                <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
+                  <span className="text-[8px] text-red-600 font-bold">{p.item === '-' ? '' : p.item}</span>
                 </div>
-                <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white text-center">
-                  {p.dataKit === '-' ? '' : p.dataKit}
+                <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
+                  <span className="text-[9px] text-center">{p.fabricante === '-' ? '' : p.fabricante}</span>
+                </div>
+                <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
+                  <span className="text-[9px] text-center">{p.dataKit === '-' ? '' : p.dataKit}</span>
                 </div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center bg-white">{p.qtde}</div>
                 <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center italic text-blue-700 bg-white">{p.nfInterna}</div>
-                <div className="border-r-2 border-gray-900 p-1 text-center flex flex-col items-center justify-center font-medium bg-white">
-                  <div>{p.status}</div>
-                  {p.itemReap !== '-' && <div className="text-[7px] text-green-600 font-bold">REAP: {p.itemReap}</div>}
+                <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
+                  <span className="text-[8px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
+                </div>
+                <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white">
+                  {p.status}
                 </div>
                 <div className="p-1 text-center flex items-center justify-center font-bold uppercase bg-white">{p.acao}</div>
               </div>

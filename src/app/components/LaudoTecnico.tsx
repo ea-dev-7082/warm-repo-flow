@@ -13,6 +13,15 @@ const ITEM_OPTIONS = [
   "Mola", "Bandeja", "Pivô", "Terminal", "Bucha"
 ];
 
+const FABRICANTES = [
+  "APOLO ROLAMENTOS", "BORFLEX", "BSB ROLAMENTOS", "COELBRA ELASTÔMEROS",
+  "DELAIKA", "DJ INDUSTRIA", "ELASTOPUR (NN)", "GENERAL WIRING DO BRASIL",
+  "GUARU", "IRPEEL", "JEPAFLEX", "MMS CARTHUR", "MOBENSANI", "PARTNERS",
+  "PASIAL", "PRIME", "REPLABOR", "RHEFYLL", "RUBBER GATTI", "SAMPEL",
+  "SD COIFA HOMOCINÉTICA", "SIFOBOR", "UREPOL", "WORLD FLEX",
+  "ZUFER TECNOLOGIA E FERRAMENTARIA LTDA"
+];
+
 export function LaudoTecnico() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -109,14 +118,12 @@ export function LaudoTecnico() {
 
       if (data) {
         // Buscar componentes também para pegar fabricante e itens do kit
-        const components = await fetchComponentsForProduct(code.toUpperCase());
-        const itensKit = components.map((c: any) => c.componente_codigo).filter(Boolean).join(", ");
+        await fetchComponentsForProduct(code.toUpperCase());
 
         setNewItem(prev => ({
           ...prev,
           descricao: data.descricao || prev.descricao,
-          referencia: data.referencia || prev.referencia,
-          itemAvaliado: itensKit || prev.itemAvaliado
+          referencia: data.referencia || prev.referencia
         }));
         toast.info("Produto e componentes encontrados no banco de dados!");
       }
@@ -226,7 +233,7 @@ export function LaudoTecnico() {
         quantidade: "1",
         recebido: false,
         status: "",
-        itemAvaliado: newItem.itemAvaliado || "",
+        itemAvaliado: "",
         avaliacaoItem: "",
         acao: "",
         referencia: newItem.referencia,
@@ -297,6 +304,7 @@ export function LaudoTecnico() {
             .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
             .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
             .grid-cols-10 { grid-template-columns: repeat(10, 1fr); }
+            .grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
             .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
             .border-2 { border: 2px solid #111827; }
             .border { border: 1px solid #111827; }
@@ -413,8 +421,20 @@ export function LaudoTecnico() {
       const descricao = p.descricao || '-';
       const nf = p.nfInterna || '-';
       const referencia = p.referencia || '-';
-      const fabricante = p.fabricante || '-';
       const dataKit = p.dataKit || '-';
+      let parsedFabStr = p.fabricante || '-';
+      try {
+        if (typeof p.fabricante === 'string' && p.fabricante.startsWith('{')) {
+          const parsed = JSON.parse(p.fabricante);
+          const entries = Object.entries(parsed).filter(([_, v]) => v);
+          if (entries.length > 0) {
+            parsedFabStr = entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+          } else {
+            parsedFabStr = '-';
+          }
+        }
+      } catch (e) { }
+      const fabricante = parsedFabStr;
 
       const existing = acc.find((x: any) =>
         x.codigo === p.codigo &&
@@ -562,7 +582,7 @@ export function LaudoTecnico() {
               {/* Formulário de Adição Manual */}
               <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-3">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Código</label>
                     <input
                       type="text"
@@ -572,11 +592,17 @@ export function LaudoTecnico() {
                         setNewItem({ ...newItem, codigo: code });
                       }}
                       onBlur={(e) => searchProductByCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          searchProductByCode((e.target as HTMLInputElement).value);
+                        }
+                      }}
                       placeholder="92.357"
                       className={`w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 ${isSearchingProduct ? 'animate-pulse bg-blue-50' : ''}`}
                     />
                   </div>
-                  <div className="md:col-span-3">
+                  <div className="md:col-span-5">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Descrição</label>
                     <input
                       type="text"
@@ -586,7 +612,7 @@ export function LaudoTecnico() {
                       className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-3">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Referência</label>
                     <input
                       type="text"
@@ -596,49 +622,10 @@ export function LaudoTecnico() {
                       className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fabricante</label>
-                    <input
-                      type="text"
-                      value={newItem.fabricante}
-                      onChange={(e) => setNewItem({ ...newItem, fabricante: e.target.value })}
-                      placeholder="Fabricante"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-1">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Data Kit</label>
-                    <input
-                      type="text"
-                      value={newItem.dataKit}
-                      onChange={(e) => setNewItem({ ...newItem, dataKit: e.target.value })}
-                      placeholder="Ano/Mês"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">NF / Qtd</label>
-                    <div className="flex gap-1">
-                      <input
-                        type="text"
-                        value={newItem.nfInterna}
-                        onChange={(e) => setNewItem({ ...newItem, nfInterna: e.target.value })}
-                        placeholder="NF"
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        value={newItem.quantidade}
-                        onChange={(e) => setNewItem({ ...newItem, quantidade: e.target.value })}
-                        className="w-12 px-1 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 text-center"
-                      />
-                    </div>
-                  </div>
                   <div className="md:col-span-12 lg:col-span-1 flex justify-end">
                     <button
                       onClick={handleAddManualItem}
-                      className="h-8 px-4 w-full lg:w-auto bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-xs font-bold shadow-sm"
+                      className="h-8 px-4 w-full lg:w-300px bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-xs font-bold shadow-sm"
                     >
                       <Plus size={14} />
                       Adicionar
@@ -748,25 +735,75 @@ export function LaudoTecnico() {
                               }}
                             />
                           </td>
-                          <td className="px-2 py-2 min-w-[100px]">
-                            <select
-                              value={p.fabricante || ""}
-                              disabled={!p.recebido}
-                              onChange={(e) => {
-                                const newProdutos = [...formData.produtos];
-                                newProdutos[i].fabricante = e.target.value;
-                                setFormData({ ...formData, produtos: newProdutos });
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                            >
-                              <option value="">Fabricante...</option>
-                              <option value="Cofap">Cofap</option>
-                              <option value="Nakata">Nakata</option>
-                              <option value="Monroe">Monroe</option>
-                              <option value="Axios">Axios</option>
-                              <option value="Sampel">Sampel</option>
-                              <option value="Outros">Outros</option>
-                            </select>
+                          <td className="px-2 py-2 min-w-[100px] align-top">
+                            {(() => {
+                              const itensSelecionados = p.itemAvaliado ? p.itemAvaliado.split(", ").filter(Boolean) : [];
+                              if (itensSelecionados.length === 0) {
+                                return (
+                                  <select
+                                    value={(p.fabricante && !p.fabricante.startsWith("{")) ? p.fabricante : ""}
+                                    disabled={!p.recebido}
+                                    onChange={(e) => {
+                                      const newProdutos = [...formData.produtos];
+                                      newProdutos[i].fabricante = e.target.value;
+                                      setFormData({ ...formData, produtos: newProdutos });
+                                    }}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                                  >
+                                    <option value="">Fabricante...</option>
+                                    {FABRICANTES.map(f => (
+                                      <option key={f} value={f}>{f}</option>
+                                    ))}
+                                    <option value="Outros">Outros</option>
+                                  </select>
+                                );
+                              }
+
+                              let parsedFabricante: Record<string, string> = {};
+                              if (p.fabricante && p.fabricante.startsWith("{")) {
+                                try { parsedFabricante = JSON.parse(p.fabricante); } catch (e) { }
+                              } else if (p.fabricante) {
+                                parsedFabricante[itensSelecionados[0]] = p.fabricante;
+                              }
+
+                              return (
+                                <div className="space-y-1">
+                                  {itensSelecionados.map((itemSelected: string, idx: number) => (
+                                    <div key={idx} className="flex flex-col gap-0.5">
+                                      {itensSelecionados.length > 1 && (
+                                        <span className="text-[9px] font-bold text-gray-500 truncate" title={itemSelected}>{itemSelected.split(" ")[0]}</span>
+                                      )}
+                                      <select
+                                        value={parsedFabricante[itemSelected] || ""}
+                                        disabled={!p.recebido}
+                                        onChange={(e) => {
+                                          const newProdutos = [...formData.produtos];
+                                          const val = e.target.value;
+                                          let updatedParsed = { ...parsedFabricante };
+                                          updatedParsed[itemSelected] = val;
+
+                                          // Keep only selected items in JSON mapping
+                                          const cleaned: Record<string, string> = {};
+                                          itensSelecionados.forEach((it: string) => {
+                                            if (updatedParsed[it]) cleaned[it] = updatedParsed[it];
+                                          });
+
+                                          newProdutos[i].fabricante = JSON.stringify(cleaned);
+                                          setFormData({ ...formData, produtos: newProdutos });
+                                        }}
+                                        className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                                      >
+                                        <option value="">Fabricante...</option>
+                                        {FABRICANTES.map(f => (
+                                          <option key={f} value={f}>{f}</option>
+                                        ))}
+                                        <option value="Outros">Outros</option>
+                                      </select>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-2 py-2 min-w-[140px]">
                             <MultiSelect
@@ -1002,24 +1039,29 @@ export function LaudoTecnico() {
                   <div className="p-2 text-center"><div>{formData.nfGarantia}</div></div>
                 </div>
 
-                <div className="grid grid-cols-10 border-b-2 border-gray-900 bg-gray-100 uppercase">
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">CÓDIGO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] col-span-2">DESCRIÇÃO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">REFERÊNCIA</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">FABRICANTE</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">DATA KIT</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">QTD</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">NF</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px]">STATUS</div>
-                  <div className="p-1 text-center font-bold text-[9px]">AÇÃO</div>
+                <div className="grid grid-cols-12 border-b-2 border-gray-900 bg-gray-100 uppercase">
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">CÓDIGO</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] col-span-2 flex items-center justify-center">DESCRIÇÃO</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">REFERÊNCIA</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">FABRICANTE</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DATA KIT</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">QTD</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">NF</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">STATUS</div>
+                  <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">AÇÃO</div>
                 </div>
 
                 {groupedProdutosInterna.map((p: any, index: number) => (
-                  <div key={index} className={`grid grid-cols-10 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`}>
+                  <div key={index} className={`grid grid-cols-12 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`}>
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">{p.codigo}</div>
                     <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 col-span-2 leading-tight bg-white">{p.descricao}</div>
                     <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
                       <span className="text-[9px] text-center">{p.referencia === '-' ? '' : p.referencia}</span>
+                    </div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
+                      <span className="text-[8px] text-red-600 font-bold">{p.item === '-' ? '' : p.item}</span>
                     </div>
                     <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
                       <span className="text-[9px] text-center">{p.fabricante === '-' ? '' : p.fabricante}</span>
@@ -1029,9 +1071,11 @@ export function LaudoTecnico() {
                     </div>
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center bg-white">{p.qtde}</div>
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center italic text-blue-700 bg-white">{p.nfInterna}</div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex flex-col items-center justify-center font-medium bg-white">
-                      <div>{p.status}</div>
-                      {p.itemReap !== '-' && <div className="text-[7px] text-green-600 font-bold">REAP: {p.itemReap}</div>}
+                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
+                      <span className="text-[8px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
+                    </div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white">
+                      {p.status}
                     </div>
                     <div className="p-1 text-center flex items-center justify-center font-bold uppercase bg-white">{p.acao}</div>
                   </div>
