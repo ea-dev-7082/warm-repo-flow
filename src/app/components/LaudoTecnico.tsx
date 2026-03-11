@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FileDown, Plus, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
 import { MultiSelect } from "./ui/MultiSelect";
+import { supabase } from "@/integrations/supabase/client";
 import { useLaudos } from "../contexts/LaudosContext";
 import { useAuth } from "../hooks/useAuth";
 
@@ -42,7 +43,9 @@ export function LaudoTecnico() {
     })) || [],
   });
 
-  const [pagamento, setPagamento] = useState<"garantia" | "bonificacao" | null>(null);
+  const [pagamento, setPagamento] = useState<"garantia" | "bonificacao" | null>(
+    importedData?.pagamento || null
+  );
 
   const [newItem, setNewItem] = useState({
     codigo: "",
@@ -51,8 +54,78 @@ export function LaudoTecnico() {
     quantidade: "1",
     referencia: "",
     fabricante: "",
-    dataKit: ""
+    dataKit: "",
+    itemAvaliado: ""
   });
+
+  const [isSearchingProduct, setIsSearchingProduct] = useState(false);
+  const [componentOptions, setComponentOptions] = useState<Record<string, string[]>>({});
+
+  const fetchComponentsForProduct = async (code: string) => {
+    if (!code) return [];
+    try {
+      const { data, error } = await supabase
+        .from('componentes_kit')
+        .select('componente_codigo')
+        .eq('produto_kit_id', code.toUpperCase());
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const components = data.map((c: any) => c.componente_codigo).filter((n): n is string => !!n);
+        setComponentOptions(prev => ({ ...prev, [code]: components }));
+        return data;
+      }
+      return [];
+    } catch (error) {
+      console.error("Erro ao buscar componentes:", error);
+      return [];
+    }
+  };
+
+  // Carregar componentes para produtos existentes
+  useEffect(() => {
+    if (formData.produtos.length > 0) {
+      formData.produtos.forEach(p => {
+        if (p.codigo && !componentOptions[p.codigo]) {
+          fetchComponentsForProduct(p.codigo);
+        }
+      });
+    }
+  }, [formData.produtos]);
+
+  // Busca automática de produto ao digitar o código
+  const searchProductByCode = async (code: string) => {
+    if (!code || code.length < 3) return;
+
+    try {
+      setIsSearchingProduct(true);
+      const { data, error } = await supabase
+        .from('produtos_kit')
+        .select('descricao, referencia')
+        .eq('produto_codigo', code.toUpperCase())
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // Buscar componentes também para pegar fabricante e itens do kit
+        const components = await fetchComponentsForProduct(code.toUpperCase());
+        const itensKit = components.map((c: any) => c.componente_codigo).filter(Boolean).join(", ");
+
+        setNewItem(prev => ({
+          ...prev,
+          descricao: data.descricao || prev.descricao,
+          referencia: data.referencia || prev.referencia,
+          itemAvaliado: itensKit || prev.itemAvaliado
+        }));
+        toast.info("Produto e componentes encontrados no banco de dados!");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar produto:", error);
+    } finally {
+      setIsSearchingProduct(false);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -122,6 +195,11 @@ export function LaudoTecnico() {
         });
 
         toast.success("XML importado com sucesso!");
+
+        // Buscar componentes para todos os produtos importados
+        produtosMapeados.forEach(p => {
+          if (p.codigo) fetchComponentsForProduct(p.codigo);
+        });
       } catch (error) {
         console.error(error);
         toast.error("Erro ao processar XML.");
@@ -148,7 +226,7 @@ export function LaudoTecnico() {
         quantidade: "1",
         recebido: false,
         status: "",
-        itemAvaliado: "",
+        itemAvaliado: newItem.itemAvaliado || "",
         avaliacaoItem: "",
         acao: "",
         referencia: newItem.referencia,
@@ -170,7 +248,8 @@ export function LaudoTecnico() {
       quantidade: "1",
       referencia: "",
       fabricante: "",
-      dataKit: ""
+      dataKit: "",
+      itemAvaliado: ""
     });
     toast.success("Produto(s) adicionado(s)!");
   };
@@ -183,7 +262,7 @@ export function LaudoTecnico() {
       nfInterna: formData.nfInterna,
       produtos: formData.produtos,
       pagamento,
-      statusLaudo: "aberto" as const,
+      statusLaudo: importedData?.statusLaudo || ("aberto" as const),
       responsavel: formData.responsavel
     };
 
@@ -488,9 +567,13 @@ export function LaudoTecnico() {
                     <input
                       type="text"
                       value={newItem.codigo}
-                      onChange={(e) => setNewItem({ ...newItem, codigo: e.target.value })}
+                      onChange={(e) => {
+                        const code = e.target.value.toUpperCase();
+                        setNewItem({ ...newItem, codigo: code });
+                      }}
+                      onBlur={(e) => searchProductByCode(e.target.value)}
                       placeholder="92.357"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                      className={`w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 ${isSearchingProduct ? 'animate-pulse bg-blue-50' : ''}`}
                     />
                   </div>
                   <div className="md:col-span-3">
@@ -558,7 +641,7 @@ export function LaudoTecnico() {
                       className="h-8 px-4 w-full lg:w-auto bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-xs font-bold shadow-sm"
                     >
                       <Plus size={14} />
-                      Add
+                      Adicionar
                     </button>
                   </div>
                 </div>
@@ -618,6 +701,16 @@ export function LaudoTecnico() {
                                 newProdutos[i].referencia = e.target.value;
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onBlur={async (e) => {
+                                const refCode = e.target.value.toUpperCase();
+                                if (refCode && refCode.length >= 3) {
+                                  toast.info(`Buscando componentes para a referência ${refCode}...`);
+                                  const components = await fetchComponentsForProduct(refCode);
+                                  if (components && components.length > 0) {
+                                    toast.success("Opções de componentes carregadas pela referência!");
+                                  }
+                                }
+                              }}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             />
                           </td>
@@ -643,7 +736,7 @@ export function LaudoTecnico() {
                           <td className="px-2 py-3 text-xs text-blue-700 italic">{p.nfInterna || "-"}</td>
                           <td className="px-2 py-2 min-w-[140px]">
                             <MultiSelect
-                              options={ITEM_OPTIONS.filter(opt => p.descricao?.toLowerCase().includes(opt.toLowerCase()))}
+                              options={(componentOptions[p.referencia?.toUpperCase()] || componentOptions[p.codigo] || ITEM_OPTIONS).filter((opt: string) => !p.itemReaproveitado?.includes(opt))}
                               selected={p.itemAvaliado ? p.itemAvaliado.split(", ").filter(Boolean) : []}
                               disabled={!p.recebido}
                               placeholder="Itens..."
@@ -677,7 +770,7 @@ export function LaudoTecnico() {
                           </td>
                           <td className="px-2 py-2 min-w-[140px]">
                             <MultiSelect
-                              options={ITEM_OPTIONS.filter(opt => p.descricao?.toLowerCase().includes(opt.toLowerCase()))}
+                              options={(componentOptions[p.referencia?.toUpperCase()] || componentOptions[p.codigo] || ITEM_OPTIONS).filter((opt: string) => !p.itemAvaliado?.includes(opt))}
                               selected={p.itemReaproveitado ? p.itemReaproveitado.split(", ").filter(Boolean) : []}
                               disabled={!p.recebido}
                               placeholder="Reapr..."
@@ -765,7 +858,7 @@ export function LaudoTecnico() {
                   <div className="p-3">
                     <div className="text-xs font-bold mb-1 uppercase">DATA</div>
                     <div className="text-sm">
-                      {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase()}
+                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase()}
                     </div>
                   </div>
                 </div>
@@ -897,7 +990,7 @@ export function LaudoTecnico() {
                   <div className="p-3">
                     <div className="text-xs font-bold mb-1 uppercase text-red-600 italic">INTERNO</div>
                     <div className="text-sm">
-                      {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase()}
+                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase()}
                     </div>
                   </div>
                 </div>

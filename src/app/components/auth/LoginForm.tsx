@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 
 interface LoginFormProps {
@@ -13,6 +14,7 @@ export function LoginForm({ onForgotPassword, onRegister }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +23,7 @@ export function LoginForm({ onForgotPassword, onRegister }: LoginFormProps) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Login realizado com sucesso!");
+      navigate("/");
     } catch (error: any) {
       toast.error(error.message === "Invalid login credentials"
         ? "E-mail ou senha incorretos"
