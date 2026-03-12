@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { useAuth } from "../hooks/useAuth";
 import { 
   UserPlus, 
@@ -180,8 +181,16 @@ export function Configuracoes() {
     e.preventDefault();
     setCreatingUser(true);
     try {
-      // 1. Sign up user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // 1. Sign up user using a temporary client to avoid session swap
+      const authClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
+
+      const { data: authData, error: authError } = await authClient.auth.signUp({
         email: newUser.email,
         password: newUser.password,
         options: {
@@ -211,9 +220,56 @@ export function Configuracoes() {
       setNewUser({ nome: "", email: "", password: "", cargo: "", empresa: "", role: "analista" });
       fetchUsers();
     } catch (error: any) {
-      toast.error("Erro ao criar usuário: " + error.message);
+      if (error.message.includes("User already registered") || error.message.includes("already exists")) {
+        toast.error("Este e-mail já está registrado no sistema de autenticação. Se você o excluiu recentemente da lista, acesse o Painel do Supabase > Authentication para removê-lo definitivamente.");
+      } else {
+        toast.error("Erro ao criar usuário: " + error.message);
+      }
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (profileId: string, userId: string, userName: string) => {
+    if (userId === currentUser?.id) {
+      toast.error("Você não pode excluir sua própria conta");
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Tem certeza que deseja excluir o usuário ${userName}? Esta ação removerá o acesso dele ao sistema.`);
+    
+    if (!confirmDelete) return;
+
+    try {
+      // 1. Remove from user_roles
+      const { error: roleError, count: roleCount } = await supabase
+        .from("user_roles")
+        .delete({ count: 'exact' })
+        .eq("user_id", userId);
+      
+      if (roleError) throw roleError;
+
+      // 2. Remove from profiles
+      const { error: profileError, count: profileCount } = await supabase
+        .from("profiles")
+        .delete({ count: 'exact' })
+        .eq("user_id", userId);
+      
+      if (profileError) throw profileError;
+
+      if (roleCount === 0 && profileCount === 0) {
+        toast.warning("O usuário não foi removido. Isso pode ser devido a restrições de permissão (RLS) no banco de dados.");
+        console.warn("Nenhuma linha removida de user_roles ou profiles. Verifique as políticas de RLS.");
+      } else {
+        toast.success(`Usuário ${userName} excluído com sucesso`);
+        // Update local state immediately
+        setProfiles(prev => prev.filter(p => p.user_id !== userId));
+      }
+      
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Erro ao excluir usuário:", error);
+      toast.error("Erro ao excluir usuário: " + error.message);
     }
   };
 
@@ -239,7 +295,7 @@ export function Configuracoes() {
       <div className="flex gap-1 border-b border-gray-200">
         <button
           onClick={() => setActiveTab("users")}
-          className={`px-4 py-2 font-medium text-sm transition-colors relative ${
+          className={`px-4 py-2 font-medium text-lg transition-colors relative ${
             activeTab === "users" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
           }`}
         >
@@ -253,7 +309,7 @@ export function Configuracoes() {
         </button>
         <button
           onClick={() => setActiveTab("signatures")}
-          className={`px-4 py-2 font-medium text-sm transition-colors relative ${
+          className={`px-4 py-2 font-medium text-lg transition-colors relative ${
             activeTab === "signatures" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
           }`}
         >
@@ -331,6 +387,18 @@ export function Configuracoes() {
                               <option value="analista">Analista</option>
                               <option value="admin">Administrador</option>
                             </select>
+                            <button
+                              onClick={() => handleDeleteUser(p.id, p.user_id, p.nome)}
+                              className={`p-1.5 rounded transition-colors ${
+                                p.user_id === currentUser?.id 
+                                  ? "text-gray-300 cursor-not-allowed" 
+                                  : "text-red-500 hover:bg-red-50"
+                              }`}
+                              disabled={p.user_id === currentUser?.id}
+                              title="Excluir Usuário"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </td>
                       </tr>

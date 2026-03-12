@@ -62,8 +62,13 @@ export function Relatorios() {
         let procedente = 0;
         let naoProcedente = 0;
         laudos.forEach(l => {
-          if (l.status === "Procedente") procedente++;
-          else if (l.status === "Não procedente") naoProcedente++;
+          const produtos = (l.xml_dados as any)?.produtos || [];
+          produtos.forEach((p: any) => {
+            if (p.recebido) {
+              if (p.status === "procedente") procedente++;
+              else if (p.status === "nao-procedente") naoProcedente++;
+            }
+          });
         });
         setStatusData([
           { name: "Procedente", value: procedente, color: "#22c55e" },

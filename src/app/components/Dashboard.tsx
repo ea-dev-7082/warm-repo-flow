@@ -38,14 +38,24 @@ export function Dashboard() {
 
         const { data: monthData, error: monthError } = await supabase
           .from("laudos")
-          .select("status, produto_descricao")
+          .select("status, produto_descricao, xml_dados")
           .gte("created_at", start)
           .lte("created_at", end);
 
         if (monthError) throw monthError;
 
-        const procedentesCount = monthData?.filter(item => item.status === "Procedente").length || 0;
-        const naoProcedentesCount = monthData?.filter(item => item.status === "Não procedente").length || 0;
+        let procedentesCount = 0;
+        let naoProcedentesCount = 0;
+
+        monthData?.forEach(report => {
+          const products = (report.xml_dados as any)?.produtos || [];
+          products.forEach((p: any) => {
+            if (p.recebido) {
+              if (p.status === 'procedente') procedentesCount++;
+              if (p.status === 'nao-procedente') naoProcedentesCount++;
+            }
+          });
+        });
 
         // Calculate product with most occurrences
         const productCounts: Record<string, number> = {};

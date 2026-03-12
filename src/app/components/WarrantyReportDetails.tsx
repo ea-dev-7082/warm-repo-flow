@@ -388,22 +388,22 @@ export function WarrantyReportDetails() {
       <div className="flex border-b border-gray-200 print:hidden">
         <button
           onClick={() => setActiveTab("cliente")}
-          className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "cliente"
+          className={`flex items-center gap-2 px-6 py-3 text-lg font-medium transition-colors border-b-2 ${activeTab === "cliente"
             ? "border-blue-600 text-blue-600"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
         >
-          <FileText size={18} />
+          <FileText size={24} />
           Visualização Laudo Cliente
         </button>
         <button
           onClick={() => setActiveTab("interna")}
-          className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "interna"
+          className={`flex items-center gap-2 px-6 py-3 text-lg font-medium transition-colors border-b-2 ${activeTab === "interna"
             ? "border-blue-600 text-blue-600"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
         >
-          <Lock size={18} />
+          <Lock size={24} />
           Visualização Laudo Interna
         </button>
       </div>

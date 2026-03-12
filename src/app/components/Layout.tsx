@@ -65,8 +65,8 @@ export function Layout() {
                     : "text-gray-300 hover:bg-slate-800 hover:text-white"
                   }`}
               >
-                <Icon size={20} />
-                {sidebarOpen && <span>{item.label}</span>}
+                <Icon size={24} />
+                {sidebarOpen && <span className="text-lg">{item.label}</span>}
               </Link>
             );
           })}

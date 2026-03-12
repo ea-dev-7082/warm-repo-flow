@@ -31,7 +31,7 @@ export function LaudoTecnico() {
   const importedData = location.state;
   const { adicionarLaudo, atualizarLaudo } = useLaudos();
   const { profile } = useAuth();
-  
+
   const [reportSettings, setReportSettings] = useState({
     company_name: "Automotriz Indústria e Comércio de Peças Automotivas",
     department: "Departamento de Qualidade e Garantia",
@@ -107,7 +107,7 @@ export function LaudoTecnico() {
           // @ts-ignore
           .from("app_settings")
           .select("*");
-        
+
         if (!error && data && data.length > 0) {
           const newSettings = { ...reportSettings };
           data.forEach((s: any) => {
@@ -130,7 +130,7 @@ export function LaudoTecnico() {
             phone: profile.sig_telefone || prev.phone
           }));
         }
-      } catch (e) {}
+      } catch (e) { }
     };
     fetchSettings();
   }, []);
@@ -571,7 +571,7 @@ export function LaudoTecnico() {
       <div className="flex border-b border-gray-200">
         <button
           onClick={() => setActiveTab("analise")}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "analise"
+          className={`px-6 py-3 text-lg font-medium transition-colors border-b-2 ${activeTab === "analise"
             ? "border-blue-600 text-blue-600"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
@@ -580,7 +580,7 @@ export function LaudoTecnico() {
         </button>
         <button
           onClick={() => setActiveTab("interna")}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "interna"
+          className={`px-6 py-3 text-lg font-medium transition-colors border-b-2 ${activeTab === "interna"
             ? "border-blue-600 text-blue-600"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
@@ -589,7 +589,7 @@ export function LaudoTecnico() {
         </button>
         <button
           onClick={() => setActiveTab("cliente")}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === "cliente"
+          className={`px-6 py-3 text-lg font-medium transition-colors border-b-2 ${activeTab === "cliente"
             ? "border-blue-600 text-blue-600"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
@@ -919,7 +919,7 @@ export function LaudoTecnico() {
                             >
                               <option value="">Status...</option>
                               <option value="procedente">Procedente</option>
-                              <option value="nao-procedente">Não Proc.</option>
+                              <option value="nao-procedente">Não Procedente</option>
                             </select>
                           </td>
                           <td className="px-2 py-2 min-w-[200px] space-y-1">
@@ -1112,83 +1112,83 @@ export function LaudoTecnico() {
         ) : (
           <>
             <div className="space-y-8">
-            <div id="print-laudo-interna" className="border-2 border-gray-900 p-8 bg-white max-w-full mx-auto shadow-md">
-              <div className="border-2 border-gray-900 mb-0">
-                <div className="grid grid-cols-3 border-b-2 border-gray-900">
-                  <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center text-center">
-                    <div>
-                      <div className="text-xl font-bold text-blue-900">COMKIT</div>
+              <div id="print-laudo-interna" className="border-2 border-gray-900 p-8 bg-white max-w-full mx-auto shadow-md">
+                <div className="border-2 border-gray-900 mb-0">
+                  <div className="grid grid-cols-3 border-b-2 border-gray-900">
+                    <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center text-center">
+                      <div>
+                        <div className="text-xl font-bold text-blue-900">COMKIT</div>
+                      </div>
+                    </div>
+                    <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
+                      <h1 className="text-sm font-bold text-center">LAUDO FINAL DE GARANTIA (INTERNO)</h1>
+                    </div>
+                    <div className="p-3">
+                      <div className="text-sm">
+                        {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
+                      </div>
                     </div>
                   </div>
-                  <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
-                    <h1 className="text-sm font-bold text-center">LAUDO FINAL DE GARANTIA (INTERNO)</h1>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-sm">
-                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-5 border-b-2 border-gray-900 text-sm">
-                  <div className="border-r-2 border-gray-900 p-2"><div className="font-bold">CLIENTE:</div></div>
-                  <div className="border-r-2 border-gray-900 p-2 text-center col-span-2"><div>{formData.cliente}</div></div>
-                  <div className="border-r-2 border-gray-900 p-2"><div className="font-bold">NOTA Nº</div></div>
-                  <div className="p-2 text-center"><div>{formData.nfGarantia}</div></div>
-                </div>
-
-                <div className="grid border-b-2 border-gray-900 bg-gray-100 uppercase" style={{ gridTemplateColumns: '8% 16% 8% 12% 9% 7% 5% 7% 10% 9% 9%' }}>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">CÓDIGO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DESCRIÇÃO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">REFERÊNCIA</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">FABRICANTE</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DATA KIT</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">QTD</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">NF</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">STATUS</div>
-                  <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">RESOLUÇÃO</div>
-                </div>
-
-                {groupedProdutosInterna.map((p: any, index: number) => (
-                  <div key={index} className={`grid ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`} style={{ gridTemplateColumns: '8% 16% 8% 12% 9% 7% 5% 7% 10% 9% 9%' }}>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">{p.codigo}</div>
-                    <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 leading-tight bg-white">{p.descricao}</div>
-                    <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
-                      <span className="text-[9px] text-center">{p.referencia === '-' ? '' : p.referencia}</span>
-                    </div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
-                      <span className="text-[8px] text-red-600 font-bold">{p.item === '-' ? '' : p.item}</span>
-                    </div>
-                    <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
-                      <span className="text-[9px] text-center">{p.fabricante === '-' ? '' : p.fabricante}</span>
-                    </div>
-                    <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
-                      <span className="text-[9px] text-center">{p.dataKit === '-' ? '' : p.dataKit}</span>
-                    </div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center bg-white">{p.qtde}</div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center italic text-blue-700 bg-white">{p.nfInterna}</div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
-                      <span className="text-[8px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
-                    </div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">
-                      <span className={p.status === 'PROCEDENTE' ? 'text-green-600' : p.status === 'NÃO PROCEDENTE' ? 'text-red-600' : ''}>
-                        {p.status}
-                      </span>
-                    </div>
-                    <div className="p-1 text-center flex items-center justify-center font-bold uppercase bg-white">{p.acao}</div>
+                  <div className="grid grid-cols-5 border-b-2 border-gray-900 text-sm">
+                    <div className="border-r-2 border-gray-900 p-2"><div className="font-bold">CLIENTE:</div></div>
+                    <div className="border-r-2 border-gray-900 p-2 text-center col-span-2"><div>{formData.cliente}</div></div>
+                    <div className="border-r-2 border-gray-900 p-2"><div className="font-bold">NOTA Nº</div></div>
+                    <div className="p-2 text-center"><div>{formData.nfGarantia}</div></div>
                   </div>
-                ))}
 
-                <div className="border-t-2 border-gray-900 p-2 text-[10px] bg-gray-50">
-                  <div className="flex justify-between px-4">
-                    <span>APROVADAS: <strong>{totalAprovadas}</strong></span>
-                    <span>REPROVADAS: <strong>{totalReprovadas}</strong></span>
-                    <span>CORTESIA: <strong>{totalCortesia}</strong></span>
-                    <span>TOTAL GERAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas) + Number(totalCortesia)}</strong></span>
+                  <div className="grid border-b-2 border-gray-900 bg-gray-100 uppercase" style={{ gridTemplateColumns: '8% 16% 8% 12% 9% 7% 5% 7% 10% 9% 9%' }}>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">CÓDIGO</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DESCRIÇÃO</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">REFERÊNCIA</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">FABRICANTE</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DATA KIT</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">QTD</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">NF</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM REAPROVEITADO</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">STATUS</div>
+                    <div className="p-1 text-center font-bold text-[9px] flex items-center justify-center">RESOLUÇÃO</div>
                   </div>
-                </div>
+
+                  {groupedProdutosInterna.map((p: any, index: number) => (
+                    <div key={index} className={`grid ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`} style={{ gridTemplateColumns: '8% 16% 8% 12% 9% 7% 5% 7% 10% 9% 9%' }}>
+                      <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">{p.codigo}</div>
+                      <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 leading-tight bg-white">{p.descricao}</div>
+                      <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
+                        <span className="text-[9px] text-center">{p.referencia === '-' ? '' : p.referencia}</span>
+                      </div>
+                      <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
+                        <span className="text-[8px] text-red-600 font-bold">{p.item === '-' ? '' : p.item}</span>
+                      </div>
+                      <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
+                        <span className="text-[9px] text-center">{p.fabricante === '-' ? '' : p.fabricante}</span>
+                      </div>
+                      <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
+                        <span className="text-[9px] text-center">{p.dataKit === '-' ? '' : p.dataKit}</span>
+                      </div>
+                      <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center bg-white">{p.qtde}</div>
+                      <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center italic text-blue-700 bg-white">{p.nfInterna}</div>
+                      <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
+                        <span className="text-[8px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
+                      </div>
+                      <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">
+                        <span className={p.status === 'PROCEDENTE' ? 'text-green-600' : p.status === 'NÃO PROCEDENTE' ? 'text-red-600' : ''}>
+                          {p.status}
+                        </span>
+                      </div>
+                      <div className="p-1 text-center flex items-center justify-center font-bold uppercase bg-white">{p.acao}</div>
+                    </div>
+                  ))}
+
+                  <div className="border-t-2 border-gray-900 p-2 text-[10px] bg-gray-50">
+                    <div className="flex justify-between px-4">
+                      <span>APROVADAS: <strong>{totalAprovadas}</strong></span>
+                      <span>REPROVADAS: <strong>{totalReprovadas}</strong></span>
+                      <span>CORTESIA: <strong>{totalCortesia}</strong></span>
+                      <span>TOTAL GERAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas) + Number(totalCortesia)}</strong></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
