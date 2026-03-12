@@ -258,10 +258,25 @@ export function Configuracoes() {
       if (profileError) throw profileError;
 
       if (roleCount === 0 && profileCount === 0) {
-        toast.warning("O usuário não foi removido. Isso pode ser devido a restrições de permissão (RLS) no banco de dados.");
-        console.warn("Nenhuma linha removida de user_roles ou profiles. Verifique as políticas de RLS.");
+        toast.warning("O usuário não foi removido das tabelas. Isso pode ser devido a restrições de permissão (RLS).");
       } else {
-        toast.success(`Usuário ${userName} excluído com sucesso`);
+        // 3. Try to remove from Auth via Edge Function
+        try {
+          const { error: funcError } = await supabase.functions.invoke('delete-user', {
+            body: { userId }
+          });
+          
+          if (funcError) {
+            console.warn("Conta de autenticação não removida via Edge Function. Verifique se a função foi implantada:", funcError);
+            toast.info(`Usuário removido da lista, mas a conta de e-mail pode persistir no Auth.`);
+          } else {
+            toast.success(`Usuário ${userName} excluído completamente (Auth + Banco)`);
+          }
+        } catch (fErr) {
+          console.error("Erro ao chamar Edge Function:", fErr);
+          toast.info(`Usuário removido da lista. Nota: Pode ser necessário remover o e-mail manualmente no painel do Supabase.`);
+        }
+
         // Update local state immediately
         setProfiles(prev => prev.filter(p => p.user_id !== userId));
       }
