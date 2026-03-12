@@ -8,6 +8,8 @@ interface MultiSelectProps {
     placeholder?: string;
     disabled?: boolean;
     themeColor?: "blue" | "green";
+    direction?: "up" | "down";
+    onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
 export function MultiSelect({
@@ -16,7 +18,9 @@ export function MultiSelect({
     onChange,
     placeholder = "Selecionar...",
     disabled = false,
-    themeColor = "blue"
+    themeColor = "blue",
+    direction = "down",
+    onKeyDown
 }: MultiSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -69,12 +73,34 @@ export function MultiSelect({
         onChange(selected.filter(item => item !== option));
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (disabled) return;
+        if (e.key === "Enter") {
+            // Se o dropdown está fechado, abre. Se está aberto, o Enter no input de busca já é tratado.
+            // Aqui permitimos que o Enter saia do componente se não estivermos capturando de forma agressiva.
+            if (!isOpen) {
+                setIsOpen(true);
+                e.preventDefault();
+            }
+        } else if (e.key === "Escape") {
+            setIsOpen(false);
+        }
+        
+        // Call the passed onKeyDown if it exists
+        if (onKeyDown) onKeyDown(e);
+    };
+
     return (
-        <div className="relative" ref={containerRef}>
+        <div 
+            className="relative outline-none" 
+            ref={containerRef}
+            tabIndex={disabled ? -1 : 0}
+            onKeyDown={handleKeyDown}
+        >
             <div
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 className={`min-h-[38px] w-full px-2 py-1 border border-gray-300 rounded text-xs flex flex-wrap gap-1 items-center cursor-pointer transition-all focus:ring-1 focus:ring-blue-500 ${disabled ? "bg-gray-100 cursor-not-allowed opacity-60" : "bg-white hover:border-gray-400"
-                    }`}
+                    } ${isOpen ? "ring-1 ring-blue-500 border-blue-500" : ""}`}
             >
                 {selected.length === 0 ? (
                     <span className="text-gray-400 ml-1">{placeholder}</span>
@@ -100,7 +126,9 @@ export function MultiSelect({
             </div>
 
             {isOpen && !disabled && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col">
+                <div className={`absolute z-[100] w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col ${
+                    direction === "up" ? "bottom-full mb-1" : "mt-1"
+                }`}>
                     <div className="p-2 border-b border-gray-100">
                         <input
                             autoFocus

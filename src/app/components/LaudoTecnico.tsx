@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FileDown, Plus, Printer, Save } from "lucide-react";
+import { Download, FileDown, Plus, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
 import { MultiSelect } from "./ui/MultiSelect";
+import { SearchableSelect } from "./ui/SearchableSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { useLaudos } from "../contexts/LaudosContext";
 import { useAuth } from "../hooks/useAuth";
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 const ITEM_OPTIONS = [
   "Coxim", "Batente", "Coifa", "Rolamento",
@@ -28,6 +31,12 @@ export function LaudoTecnico() {
   const importedData = location.state;
   const { adicionarLaudo, atualizarLaudo } = useLaudos();
   const { profile } = useAuth();
+  
+  const [reportSettings, setReportSettings] = useState({
+    company_name: "Automotriz Indústria e Comércio de Peças Automotivas",
+    department: "Departamento de Qualidade e Garantia",
+    phone: "(21) 96480-3390"
+  });
 
   const [activeTab, setActiveTab] = useState<"analise" | "cliente" | "interna">(
     importedData?.abaOrigem || "analise"
@@ -91,16 +100,62 @@ export function LaudoTecnico() {
     }
   };
 
-  // Carregar componentes para produtos existentes
   useEffect(() => {
-    if (formData.produtos.length > 0) {
-      formData.produtos.forEach(p => {
-        if (p.codigo && !componentOptions[p.codigo]) {
-          fetchComponentsForProduct(p.codigo);
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          // @ts-ignore
+          .from("app_settings")
+          .select("*");
+        
+        if (!error && data && data.length > 0) {
+          const newSettings = { ...reportSettings };
+          data.forEach((s: any) => {
+            if (s.key in newSettings) {
+              // @ts-ignore
+              newSettings[s.key] = s.value;
+            }
+          });
+          setReportSettings(newSettings);
         }
-      });
+
+        // Use profile signature if available
+        if (profile) {
+          setReportSettings(prev => ({
+            // @ts-ignore
+            company_name: profile.sig_empresa || prev.company_name,
+            // @ts-ignore
+            department: profile.sig_departamento || prev.department,
+            // @ts-ignore
+            phone: profile.sig_telefone || prev.phone
+          }));
+        }
+      } catch (e) {}
+    };
+    fetchSettings();
+  }, []);
+
+  const handleEnterNavigation = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      // Don't navigate if we're in a textarea (default Enter behavior needed)
+      // unless it's a specific requirement. But usually textareas need Enter for newline.
+      // However, our specific textarea is small and user might want Enter to move next.
+      // Let's check the tag name.
+      const target = e.target as HTMLElement;
+      if (target.tagName === "TEXTAREA" && !e.ctrlKey) return;
+
+      e.preventDefault();
+      const form = target.closest("div") || document.body;
+      const focusableElements = Array.from(
+        document.querySelectorAll("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1']):not([disabled]), button:not([disabled])")
+      ) as HTMLElement[];
+
+      const currentIndex = focusableElements.indexOf(target);
+      if (currentIndex > -1 && currentIndex < focusableElements.length - 1) {
+        focusableElements[currentIndex + 1].focus();
+      }
     }
-  }, [formData.produtos]);
+  };
 
   // Busca automática de produto ao digitar o código
   const searchProductByCode = async (code: string) => {
@@ -303,7 +358,6 @@ export function LaudoTecnico() {
             .grid { display: grid; }
             .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
             .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
-            .grid-cols-10 { grid-template-columns: repeat(10, 1fr); }
             .grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
             .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
             .border-2 { border: 2px solid #111827; }
@@ -349,9 +403,25 @@ export function LaudoTecnico() {
             .h-12 { height: 3rem; }
             .gap-4 { gap: 16px; }
             .px-4 { padding-left: 16px; padding-right: 16px; }
+
+            /* Classes para Tailwind arbitrárias e suporte a cores */
+            .text-\\[9px\\] { font-size: 9px; }
+            .text-\\[8px\\] { font-size: 8px; }
+            .text-\\[10px\\] { font-size: 10px; }
+            .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+            .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+            .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+            .text-xs { font-size: 0.75rem; line-height: 1rem; }
+            .min-h-\\[35px\\] { min-height: 35px; }
+            .min-h-\\[40px\\] { min-height: 40px; }
+            .bg-white { background-color: #ffffff; }
+            .text-blue-900 { color: rgb(30 58 138); }
+            .font-medium { font-weight: 500; }
+
             @media print {
               @page { size: A4 landscape; margin: 10mm; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              select, input, .print\\:hidden { display: none !important; }
             }
           </style>
         </head>
@@ -366,18 +436,34 @@ export function LaudoTecnico() {
     }, 400);
   };
 
+  const handleExportPDF = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const opt = {
+      margin: 10,
+      filename: `laudo-${formData.nfGarantia || 'comkit'}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' as const }
+    };
+
+    html2pdf().from(element).set(opt).save();
+  };
+
   const groupedProdutosCliente = formData.produtos
     .reduce((acc: any[], p: any) => {
       let statusLabel = '-';
       if (!p.recebido) {
         statusLabel = 'NÃO RECEBIDO';
       } else {
-        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROC.' : '-');
+        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROCEDENTE' : '-');
       }
 
       const item = p.itemAvaliado || '-';
       const itemReap = p.itemReaproveitado || '-';
       const avaliacao = p.avaliacaoItem || '-';
+      const referencia = p.referencia || '-';
       const acao = p.acao || '-';
 
       const existing = acc.find((x: any) =>
@@ -385,6 +471,7 @@ export function LaudoTecnico() {
         x.status === statusLabel &&
         x.item === item &&
         x.avaliacao === avaliacao &&
+        x.referencia === referencia &&
         x.acao === acao
       );
 
@@ -399,6 +486,7 @@ export function LaudoTecnico() {
           status: statusLabel,
           item: item,
           avaliacao: avaliacao,
+          referencia: referencia,
           acao: acao
         });
       }
@@ -411,7 +499,7 @@ export function LaudoTecnico() {
       if (!p.recebido) {
         statusLabel = 'NÃO RECEBIDO';
       } else {
-        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROC.' : '-');
+        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROCEDENTE' : '-');
       }
 
       const item = p.itemAvaliado || '-';
@@ -475,9 +563,10 @@ export function LaudoTecnico() {
 
   const totalAprovadas = formData.produtos?.filter((p: any) => p.recebido && p.status === 'procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
   const totalReprovadas = formData.produtos?.filter((p: any) => p.recebido && p.status === 'nao-procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalCortesia = formData.produtos?.filter((p: any) => p.recebido && p.acao === 'Cortesia').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Tab Navigation */}
       <div className="flex border-b border-gray-200">
         <button
@@ -592,12 +681,7 @@ export function LaudoTecnico() {
                         setNewItem({ ...newItem, codigo: code });
                       }}
                       onBlur={(e) => searchProductByCode(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          searchProductByCode((e.target as HTMLInputElement).value);
-                        }
-                      }}
+                      onKeyDown={handleEnterNavigation}
                       placeholder="92.357"
                       className={`w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 ${isSearchingProduct ? 'animate-pulse bg-blue-50' : ''}`}
                     />
@@ -608,6 +692,7 @@ export function LaudoTecnico() {
                       type="text"
                       value={newItem.descricao}
                       onChange={(e) => setNewItem({ ...newItem, descricao: e.target.value })}
+                      onKeyDown={handleEnterNavigation}
                       placeholder="Descrição do produto"
                       className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                     />
@@ -618,6 +703,7 @@ export function LaudoTecnico() {
                       type="text"
                       value={newItem.referencia}
                       onChange={(e) => setNewItem({ ...newItem, referencia: e.target.value })}
+                      onKeyDown={handleEnterNavigation}
                       placeholder="Ref"
                       className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
                     />
@@ -635,7 +721,7 @@ export function LaudoTecnico() {
               </div>
 
               {formData.produtos && formData.produtos.length > 0 && (
-                <div className="mb-6 overflow-x-auto">
+                <div className="mb-6">
                   <table className="w-full text-sm text-left text-gray-500 border border-gray-200 rounded-lg">
                     <thead className="text-[10px] text-gray-700 uppercase bg-gray-50 font-bold">
                       <tr>
@@ -650,7 +736,7 @@ export function LaudoTecnico() {
                         <th className="px-2 py-2 border-b">Fabricante</th>
                         <th className="px-2 py-2 border-b">Item Reaproveitado</th>
                         <th className="px-2 py-2 border-b">Status</th>
-                        <th className="px-2 py-2 border-b">Resolução</th>
+                        <th className="px-2 py-2 border-b">Resolução/Obs</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -672,6 +758,7 @@ export function LaudoTecnico() {
                                 }
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onKeyDown={handleEnterNavigation}
                               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                             />
                           </td>
@@ -698,6 +785,7 @@ export function LaudoTecnico() {
                                   }
                                 }
                               }}
+                              onKeyDown={handleEnterNavigation}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             />
                           </td>
@@ -714,6 +802,7 @@ export function LaudoTecnico() {
                                 newProdutos[i].dataKit = val;
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onKeyDown={handleEnterNavigation}
                               className="w-full px-1 py-1 border border-gray-300 rounded text-center text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             />
                           </td>
@@ -728,11 +817,13 @@ export function LaudoTecnico() {
                               disabled={!p.recebido}
                               placeholder="Itens..."
                               themeColor="blue"
+                              direction="up"
                               onChange={(selected) => {
                                 const newProdutos = [...formData.produtos];
                                 newProdutos[i].itemAvaliado = selected.join(", ");
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onKeyDown={handleEnterNavigation}
                             />
                           </td>
                           <td className="px-2 py-2 min-w-[100px] align-top">
@@ -740,22 +831,19 @@ export function LaudoTecnico() {
                               const itensSelecionados = p.itemAvaliado ? p.itemAvaliado.split(", ").filter(Boolean) : [];
                               if (itensSelecionados.length === 0) {
                                 return (
-                                  <select
+                                  <SearchableSelect
+                                    options={[...FABRICANTES, "Outros"]}
                                     value={(p.fabricante && !p.fabricante.startsWith("{")) ? p.fabricante : ""}
                                     disabled={!p.recebido}
-                                    onChange={(e) => {
+                                    placeholder="Fabricante..."
+                                    direction="up"
+                                    onKeyDown={handleEnterNavigation}
+                                    onChange={(val) => {
                                       const newProdutos = [...formData.produtos];
-                                      newProdutos[i].fabricante = e.target.value;
+                                      newProdutos[i].fabricante = val;
                                       setFormData({ ...formData, produtos: newProdutos });
                                     }}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                                  >
-                                    <option value="">Fabricante...</option>
-                                    {FABRICANTES.map(f => (
-                                      <option key={f} value={f}>{f}</option>
-                                    ))}
-                                    <option value="Outros">Outros</option>
-                                  </select>
+                                  />
                                 );
                               }
 
@@ -773,12 +861,15 @@ export function LaudoTecnico() {
                                       {itensSelecionados.length > 1 && (
                                         <span className="text-[9px] font-bold text-gray-500 truncate" title={itemSelected}>{itemSelected.split(" ")[0]}</span>
                                       )}
-                                      <select
+                                      <SearchableSelect
+                                        options={[...FABRICANTES, "Outros"]}
                                         value={parsedFabricante[itemSelected] || ""}
                                         disabled={!p.recebido}
-                                        onChange={(e) => {
+                                        placeholder="Fabricante..."
+                                        direction="up"
+                                        onKeyDown={handleEnterNavigation}
+                                        onChange={(val) => {
                                           const newProdutos = [...formData.produtos];
-                                          const val = e.target.value;
                                           let updatedParsed = { ...parsedFabricante };
                                           updatedParsed[itemSelected] = val;
 
@@ -791,14 +882,7 @@ export function LaudoTecnico() {
                                           newProdutos[i].fabricante = JSON.stringify(cleaned);
                                           setFormData({ ...formData, produtos: newProdutos });
                                         }}
-                                        className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                                      >
-                                        <option value="">Fabricante...</option>
-                                        {FABRICANTES.map(f => (
-                                          <option key={f} value={f}>{f}</option>
-                                        ))}
-                                        <option value="Outros">Outros</option>
-                                      </select>
+                                      />
                                     </div>
                                   ))}
                                 </div>
@@ -812,11 +896,13 @@ export function LaudoTecnico() {
                               disabled={!p.recebido}
                               placeholder="Reapr..."
                               themeColor="green"
+                              direction="up"
                               onChange={(selected) => {
                                 const newProdutos = [...formData.produtos];
                                 newProdutos[i].itemReaproveitado = selected.join(", ");
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onKeyDown={handleEnterNavigation}
                             />
                           </td>
                           <td className="px-2 py-2">
@@ -828,6 +914,7 @@ export function LaudoTecnico() {
                                 newProdutos[i].status = e.target.value;
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onKeyDown={handleEnterNavigation}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             >
                               <option value="">Status...</option>
@@ -836,18 +923,6 @@ export function LaudoTecnico() {
                             </select>
                           </td>
                           <td className="px-2 py-2 min-w-[200px] space-y-1">
-                            <textarea
-                              value={p.avaliacaoItem}
-                              disabled={!p.recebido}
-                              onChange={(e) => {
-                                const newProdutos = [...formData.produtos];
-                                newProdutos[i].avaliacaoItem = e.target.value;
-                                setFormData({ ...formData, produtos: newProdutos });
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none resize-none disabled:bg-gray-100"
-                              rows={2}
-                              placeholder="Avaliação técnica..."
-                            />
                             <select
                               value={p.acao}
                               disabled={!p.recebido}
@@ -856,13 +931,27 @@ export function LaudoTecnico() {
                                 newProdutos[i].acao = e.target.value;
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
+                              onKeyDown={handleEnterNavigation}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             >
                               <option value="">Resolução...</option>
                               <option value="troca">Troca</option>
-                              <option value="credito">Crédito</option>
+                              <option value="Cortesia">Cortesia</option>
                               <option value="devolucao">Devolução</option>
                             </select>
+                            <textarea
+                              value={p.avaliacaoItem}
+                              disabled={!p.recebido}
+                              onChange={(e) => {
+                                const newProdutos = [...formData.produtos];
+                                newProdutos[i].avaliacaoItem = e.target.value;
+                                setFormData({ ...formData, produtos: newProdutos });
+                              }}
+                              onKeyDown={handleEnterNavigation}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none resize-none disabled:bg-gray-100"
+                              rows={2}
+                              placeholder="Avaliação técnica..."
+                            />
                           </td>
                         </tr>
                       ))}
@@ -883,7 +972,7 @@ export function LaudoTecnico() {
           </>
         ) : activeTab === "cliente" ? (
           <div className="space-y-8">
-            <div id="print-laudo-cliente" className="border-2 border-gray-900 p-8 bg-white max-w-4xl mx-auto shadow-md">
+            <div id="print-laudo-cliente" className="border-2 border-gray-900 p-8 bg-white max-w-full mx-auto shadow-md">
               <div className="border-2 border-gray-900 mb-0">
                 <div className="grid grid-cols-3 border-b-2 border-gray-900">
                   <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
@@ -895,7 +984,7 @@ export function LaudoTecnico() {
                   <div className="p-3">
                     <div className="text-xs font-bold mb-1 uppercase">DATA</div>
                     <div className="text-sm">
-                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase()}
+                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
                     </div>
                   </div>
                 </div>
@@ -914,27 +1003,33 @@ export function LaudoTecnico() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-5 border-b-2 border-gray-900 bg-gray-50 uppercase">
+                <div className="grid border-b-2 border-gray-900 bg-gray-50 uppercase" style={{ gridTemplateColumns: '15% 15% 5% 15% 35% 15%' }}>
                   <div className="border-r-2 border-gray-900 p-2 text-center"><div className="text-[10px] font-bold">PRODUTO</div></div>
+                  <div className="border-r-2 border-gray-900 p-2 text-center"><div className="text-[10px] font-bold">REFERÊNCIA</div></div>
                   <div className="border-r-2 border-gray-900 p-2 text-center"><div className="text-[10px] font-bold">QTD</div></div>
                   <div className="border-r-2 border-gray-900 p-2 text-center"><div className="text-[10px] font-bold">STATUS</div></div>
-                  <div className="border-r-2 border-gray-900 p-2 text-center"><div className="text-[10px] font-bold">ITEM AVALIADO</div></div>
+                  <div className="border-r-2 border-gray-900 p-2 text-center"><div className="text-[10px] font-bold">ANÁLISE</div></div>
                   <div className="p-2 text-center"><div className="text-[10px] font-bold">RESOLUÇÃO</div></div>
                 </div>
 
                 {groupedProdutosCliente.map((p: any, index: number) => (
-                  <div key={index} className={`grid grid-cols-5 ${index < groupedProdutosCliente.length - 1 ? "border-b border-gray-900" : ""} text-[10px] min-h-[40px]`}>
+                  <div key={index} className={`grid ${index < groupedProdutosCliente.length - 1 ? "border-b border-gray-900" : ""} text-[10px] min-h-[40px]`} style={{ gridTemplateColumns: '15% 15% 5% 15% 35% 15%' }}>
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold">{p.codigo}</div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center italic">{p.referencia}</div>
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center">{p.qtde}</div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center whitespace-nowrap">{p.status}</div>
-                    <div className="border-r-2 border-gray-900 p-1 flex items-start pl-2 italic leading-tight"><div>{p.item}</div></div>
+                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center whitespace-nowrap font-bold">
+                      <span className={p.status === 'PROCEDENTE' ? 'text-green-600' : p.status === 'NÃO PROCEDENTE' ? 'text-red-600' : ''}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <div className="border-r-2 border-gray-900 p-1 flex items-start pl-2 italic leading-tight"><div>{p.avaliacao}</div></div>
                     <div className="p-1 text-center font-bold flex items-center justify-center uppercase">{p.acao}</div>
                   </div>
                 ))}
 
                 <div className="border-t-2 border-gray-900 p-3 text-xs">
                   <div className="mb-2"><strong>TOTAL DE PEÇAS EM GARANTIA APROVADAS:</strong> {totalAprovadas}</div>
-                  <div className="mb-2 ml-16">ATENDIDAS: {totalAprovadas} // AGUARDANDO REPOSIÇÃO: 0</div>
+                  <div className="mb-2 ml-16">ATENDIDAS: {totalAprovadas}</div>
                   <div><strong>TOTAL DE PEÇAS EM GARANTIA REPROVADAS:</strong> {totalReprovadas}</div>
                 </div>
               </div>
@@ -988,9 +1083,9 @@ export function LaudoTecnico() {
               <div className="mt-8 text-center text-[10px]">
                 <div className="border-t border-gray-400 w-48 mx-auto mb-1"></div>
                 <div className="font-bold uppercase">{formData.responsavel}</div>
-                <div>Departamento de Qualidade e Garantia</div>
-                <div>Automotriz Indústria e Comércio de Peças Automotivas</div>
-                <div>Tel(21) 96480-3390</div>
+                <div>{reportSettings.department}</div>
+                <div>{reportSettings.company_name}</div>
+                <div>Tel{reportSettings.phone}</div>
               </div>
             </div>
 
@@ -1003,6 +1098,10 @@ export function LaudoTecnico() {
                   <Printer size={16} />
                   Imprimir
                 </button>
+                <button onClick={() => handleExportPDF('print-laudo-cliente')} className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+                  <Download size={16} />
+                  Exportar PDF
+                </button>
                 <button onClick={() => handleSubmit()} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
                   <Save size={16} />
                   Salvar Análise
@@ -1011,23 +1110,22 @@ export function LaudoTecnico() {
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            <div id="print-laudo-interna" className="border-2 border-gray-900 p-8 bg-white max-w-4xl mx-auto shadow-md">
+          <>
+            <div className="space-y-8">
+            <div id="print-laudo-interna" className="border-2 border-gray-900 p-8 bg-white max-w-full mx-auto shadow-md">
               <div className="border-2 border-gray-900 mb-0">
                 <div className="grid grid-cols-3 border-b-2 border-gray-900">
                   <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center text-center">
                     <div>
                       <div className="text-xl font-bold text-blue-900">COMKIT</div>
-                      <div className="text-[8px] uppercase">Controle Interno</div>
                     </div>
                   </div>
                   <div className="border-r-2 border-gray-900 p-3 flex items-center justify-center">
                     <h1 className="text-sm font-bold text-center">LAUDO FINAL DE GARANTIA (INTERNO)</h1>
                   </div>
                   <div className="p-3">
-                    <div className="text-xs font-bold mb-1 uppercase text-red-600 italic">INTERNO</div>
                     <div className="text-sm">
-                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }).toUpperCase()}
+                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
                     </div>
                   </div>
                 </div>
@@ -1039,9 +1137,9 @@ export function LaudoTecnico() {
                   <div className="p-2 text-center"><div>{formData.nfGarantia}</div></div>
                 </div>
 
-                <div className="grid grid-cols-12 border-b-2 border-gray-900 bg-gray-100 uppercase">
+                <div className="grid border-b-2 border-gray-900 bg-gray-100 uppercase" style={{ gridTemplateColumns: '8% 16% 8% 12% 9% 7% 5% 7% 10% 9% 9%' }}>
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">CÓDIGO</div>
-                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] col-span-2 flex items-center justify-center">DESCRIÇÃO</div>
+                  <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">DESCRIÇÃO</div>
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">REFERÊNCIA</div>
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[8px] leading-tight flex items-center justify-center">ITEM COM DEFEITO</div>
                   <div className="border-r-2 border-gray-900 p-1 text-center font-bold text-[9px] flex items-center justify-center">FABRICANTE</div>
@@ -1054,9 +1152,9 @@ export function LaudoTecnico() {
                 </div>
 
                 {groupedProdutosInterna.map((p: any, index: number) => (
-                  <div key={index} className={`grid grid-cols-12 ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`}>
+                  <div key={index} className={`grid ${index < groupedProdutosInterna.length - 1 ? "border-b border-gray-900" : ""} text-[9px] min-h-[35px]`} style={{ gridTemplateColumns: '8% 16% 8% 12% 9% 7% 5% 7% 10% 9% 9%' }}>
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">{p.codigo}</div>
-                    <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 col-span-2 leading-tight bg-white">{p.descricao}</div>
+                    <div className="border-r-2 border-gray-900 p-1 flex items-center px-1 leading-tight bg-white">{p.descricao}</div>
                     <div className="border-r-2 border-gray-900 p-1 flex items-center justify-center bg-white">
                       <span className="text-[9px] text-center">{p.referencia === '-' ? '' : p.referencia}</span>
                     </div>
@@ -1074,8 +1172,10 @@ export function LaudoTecnico() {
                     <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white leading-tight">
                       <span className="text-[8px] text-green-600 font-bold">{p.itemReap === '-' ? '' : p.itemReap}</span>
                     </div>
-                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-medium bg-white">
-                      {p.status}
+                    <div className="border-r-2 border-gray-900 p-1 text-center flex items-center justify-center font-bold bg-white">
+                      <span className={p.status === 'PROCEDENTE' ? 'text-green-600' : p.status === 'NÃO PROCEDENTE' ? 'text-red-600' : ''}>
+                        {p.status}
+                      </span>
                     </div>
                     <div className="p-1 text-center flex items-center justify-center font-bold uppercase bg-white">{p.acao}</div>
                   </div>
@@ -1085,8 +1185,10 @@ export function LaudoTecnico() {
                   <div className="flex justify-between px-4">
                     <span>APROVADAS: <strong>{totalAprovadas}</strong></span>
                     <span>REPROVADAS: <strong>{totalReprovadas}</strong></span>
-                    <span>TOTAL GERAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas)}</strong></span>
+                    <span>CORTESIA: <strong>{totalCortesia}</strong></span>
+                    <span>TOTAL GERAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas) + Number(totalCortesia)}</strong></span>
                   </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -1096,20 +1198,20 @@ export function LaudoTecnico() {
                 Voltar para Análise
               </button>
               <div className="flex gap-3">
-                <button onClick={() => handleSubmit()} className="px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
-                  <Save size={16} />
-                  Salvar
-                </button>
                 <button onClick={() => handlePrint('print-laudo-interna')} className="px-5 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center gap-2">
                   <Printer size={16} />
                   Imprimir
+                </button>
+                <button onClick={() => handleExportPDF('print-laudo-interna')} className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+                  <Download size={16} />
+                  Exportar PDF
                 </button>
                 <button onClick={() => setActiveTab("cliente")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                   Próximo: Laudo Cliente
                 </button>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

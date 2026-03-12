@@ -11,6 +11,7 @@ import { LaudosAbertos } from "./components/LaudosAbertos";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { Configuracoes } from "./components/Configuracoes";
 
 export const router = createBrowserRouter([
   {
@@ -46,7 +47,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "configuracoes",
-        Component: () => <PlaceholderPage title="Configurações" />,
+        Component: Configuracoes,
       },
     ],
   },

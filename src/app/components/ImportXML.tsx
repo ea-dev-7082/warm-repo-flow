@@ -102,7 +102,7 @@ export function ImportXML() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       {!xmlData ? (
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">

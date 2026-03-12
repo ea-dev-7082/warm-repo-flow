@@ -50,6 +50,9 @@ export function Layout() {
 
         <nav className="flex-1 p-4 space-y-1">
           {menuItems.map((item) => {
+            // Only show settings to admins
+            if (item.path === "/configuracoes" && role !== "admin") return null;
+
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
