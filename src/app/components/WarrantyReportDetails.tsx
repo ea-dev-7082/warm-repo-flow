@@ -17,7 +17,7 @@ export function WarrantyReportDetails() {
   const [activeTab, setActiveTab] = useState<"cliente" | "interna">(
     location.state?.abaOrigem === "interna" ? "interna" : "cliente"
   );
-  
+
   const [reportSettings, setReportSettings] = useState({
     company_name: "Automotriz Indústria e Comércio de Peças Automotivas",
     department: "Departamento de Qualidade e Garantia",
@@ -31,7 +31,7 @@ export function WarrantyReportDetails() {
           // @ts-ignore
           .from("app_settings")
           .select("*");
-        
+
         if (!error && data && data.length > 0) {
           const newSettings = { ...reportSettings };
           data.forEach((s: any) => {
@@ -42,7 +42,7 @@ export function WarrantyReportDetails() {
           });
           setReportSettings(newSettings);
         }
-      } catch (e) {}
+      } catch (e) { }
     };
     fetchSettings();
   }, []);
@@ -58,7 +58,7 @@ export function WarrantyReportDetails() {
           .select("sig_empresa, sig_departamento, sig_telefone")
           .eq("user_id", respId)
           .single();
-        
+
         if (!error && data) {
           setReportSettings(prev => ({
             // @ts-ignore
@@ -69,9 +69,9 @@ export function WarrantyReportDetails() {
             phone: data.sig_telefone || prev.phone
           }));
         }
-      } catch (e) {}
+      } catch (e) { }
     };
-    
+
     if (dynamicData) {
       fetchTechnicianProfile();
     }
@@ -425,7 +425,7 @@ export function WarrantyReportDetails() {
             <Printer size={18} />
             Imprimir
           </button>
-          <button 
+          <button
             onClick={() => handleExportPDF(activeTab === 'cliente' ? 'print-laudo-cliente' : 'print-laudo-interna')}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -491,10 +491,20 @@ export function WarrantyReportDetails() {
               </div>
             ))}
 
-            <div className="border-t-2 border-gray-900 p-3 text-xs">
-              <div className="mb-2"><strong>TOTAL DE PEÇAS EM GARANTIA APROVADAS:</strong> {totalAprovadas}</div>
-              <div className="mb-2 ml-16">ATENDIDAS: {totalAprovadas}</div>
-              <div><strong>TOTAL DE PEÇAS EM GARANTIA REPROVADAS:</strong> {totalReprovadas}</div>
+            <div className="border-t-2 border-gray-900 p-3 text-[11px] bg-gray-50/50">
+              <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 w-fit">
+                <div className="font-bold whitespace-nowrap text-gray-900">TOTAL DE PEÇAS EM GARANTIA APROVADAS:</div>
+                <div className="font-bold text-gray-900 text-right">{totalAprovadas}</div>
+                
+                <div className="pl-4 text-gray-600 italic whitespace-nowrap">- ATENDIDAS:</div>
+                <div className="text-gray-600 italic text-right">{totalAprovadas}</div>
+                
+                <div className="font-bold whitespace-nowrap text-gray-900">TOTAL DE PEÇAS EM GARANTIA REPROVADAS:</div>
+                <div className="font-bold text-gray-900 text-right">{totalReprovadas}</div>
+                
+                <div className="pl-4 text-gray-600 italic whitespace-nowrap">- CORTESIAS:</div>
+                <div className="text-gray-600 italic text-right">{totalCortesia}</div>
+              </div>
             </div>
           </div>
 
@@ -624,10 +634,10 @@ export function WarrantyReportDetails() {
 
             <div className="border-t-2 border-gray-900 p-2 text-[10px] bg-gray-50">
               <div className="flex justify-between px-4">
-                <span>APROVADAS: <strong>{totalAprovadas}</strong></span>
-                <span>REPROVADAS: <strong>{totalReprovadas}</strong></span>
+                <span>APROVADO: <strong>{totalAprovadas}</strong></span>
+                <span>REPROVADO: <strong>{totalReprovadas}</strong></span>
+                <span>TOTAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas)}</strong></span>
                 <span>CORTESIA: <strong>{totalCortesia}</strong></span>
-                <span>TOTAL GERAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas) + Number(totalCortesia)}</strong></span>
               </div>
             </div>
           </div>

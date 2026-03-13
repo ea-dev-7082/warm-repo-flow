@@ -17,7 +17,7 @@ export function SearchableSelect({
     onChange,
     placeholder = "Selecionar...",
     disabled = false,
-    direction = "down",
+    direction = "up",
     onKeyDown
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);

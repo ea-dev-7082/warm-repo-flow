@@ -19,7 +19,7 @@ export function MultiSelect({
     placeholder = "Selecionar...",
     disabled = false,
     themeColor = "blue",
-    direction = "down",
+    direction = "up",
     onKeyDown
 }: MultiSelectProps) {
     const [isOpen, setIsOpen] = useState(false);

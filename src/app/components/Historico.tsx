@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useLaudos } from "../contexts/LaudosContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "./ui/SearchableSelect";
 
 interface HistoricoRowProps {
   item: any;
@@ -361,17 +362,14 @@ export function Historico() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
-            <select
+            <SearchableSelect
+              options={["procedente", "nao-procedente"]}
               value={filters.status}
-              onChange={(e) =>
-                setFilters({ ...filters, status: e.target.value })
+              placeholder="Todos"
+              onChange={(val) =>
+                setFilters({ ...filters, status: val })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Todos</option>
-              <option value="procedente">Procedente</option>
-              <option value="nao-procedente">Não procedente</option>
-            </select>
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

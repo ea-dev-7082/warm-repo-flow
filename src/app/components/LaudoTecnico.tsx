@@ -10,19 +10,27 @@ import { useLaudos } from "../contexts/LaudosContext";
 import { useAuth } from "../hooks/useAuth";
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+import { FABRICANTES } from "../constants/suppliers";
 
 const ITEM_OPTIONS = [
   "Coxim", "Batente", "Coifa", "Rolamento",
   "Mola", "Bandeja", "Pivô", "Terminal", "Bucha"
 ];
 
-const FABRICANTES = [
-  "APOLO ROLAMENTOS", "BORFLEX", "BSB ROLAMENTOS", "COELBRA ELASTÔMEROS",
-  "DELAIKA", "DJ INDUSTRIA", "ELASTOPUR (NN)", "GENERAL WIRING DO BRASIL",
-  "GUARU", "IRPEEL", "JEPAFLEX", "MMS CARTHUR", "MOBENSANI", "PARTNERS",
-  "PASIAL", "PRIME", "REPLABOR", "RHEFYLL", "RUBBER GATTI", "SAMPEL",
-  "SD COIFA HOMOCINÉTICA", "SIFOBOR", "UREPOL", "WORLD FLEX",
-  "ZUFER TECNOLOGIA E FERRAMENTARIA LTDA"
+
+const PREDEFINED_MESSAGES = [
+  "Ruido no rolamento",
+  "Batente ressecado",
+  "Rompimento no coxim",
+  "Coxim e rolamento não pertencem aos nossos fornecedores.",
+  "Ruído no rolamento do localizador.",
+  "Ruído no rolamento do coxim.",
+  "Peça metálica do batente solta.",
+  "Rolamento Estourado.",
+  "Coxim amassado devido à má aplicação.",
+  "Tucho ressecado (Prazo excedido).",
+  "Kit incompleto.",
+  "Coxim com parafuso solto."
 ];
 
 export function LaudoTecnico() {
@@ -906,39 +914,45 @@ export function LaudoTecnico() {
                             />
                           </td>
                           <td className="px-2 py-2">
-                            <select
+                            <SearchableSelect
+                              options={["procedente", "nao-procedente"]}
                               value={p.status}
                               disabled={!p.recebido}
-                              onChange={(e) => {
+                              placeholder="Status..."
+                              onChange={(val) => {
                                 const newProdutos = [...formData.produtos];
-                                newProdutos[i].status = e.target.value;
+                                newProdutos[i].status = val;
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
                               onKeyDown={handleEnterNavigation}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                            >
-                              <option value="">Status...</option>
-                              <option value="procedente">Procedente</option>
-                              <option value="nao-procedente">Não Procedente</option>
-                            </select>
+                            />
                           </td>
                           <td className="px-2 py-2 min-w-[200px] space-y-1">
-                            <select
+                            <SearchableSelect
+                              options={["troca", "Cortesia", "devolucao"]}
                               value={p.acao}
                               disabled={!p.recebido}
-                              onChange={(e) => {
+                              placeholder="Resolução..."
+                              onChange={(val) => {
                                 const newProdutos = [...formData.produtos];
-                                newProdutos[i].acao = e.target.value;
+                                newProdutos[i].acao = val;
                                 setFormData({ ...formData, produtos: newProdutos });
                               }}
                               onKeyDown={handleEnterNavigation}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                            >
-                              <option value="">Resolução...</option>
-                              <option value="troca">Troca</option>
-                              <option value="Cortesia">Cortesia</option>
-                              <option value="devolucao">Devolução</option>
-                            </select>
+                            />
+                            <SearchableSelect
+                              options={PREDEFINED_MESSAGES}
+                              value=""
+                              disabled={!p.recebido}
+                              placeholder="Análises pré-definidas..."
+                              onChange={(msg) => {
+                                const newProdutos = [...formData.produtos];
+                                const currentVal = newProdutos[i].avaliacaoItem || "";
+                                newProdutos[i].avaliacaoItem = currentVal ? `${currentVal} ${msg}` : msg;
+                                setFormData({ ...formData, produtos: newProdutos });
+                              }}
+                              onKeyDown={handleEnterNavigation}
+                            />
                             <textarea
                               value={p.avaliacaoItem}
                               disabled={!p.recebido}
@@ -1027,10 +1041,20 @@ export function LaudoTecnico() {
                   </div>
                 ))}
 
-                <div className="border-t-2 border-gray-900 p-3 text-xs">
-                  <div className="mb-2"><strong>TOTAL DE PEÇAS EM GARANTIA APROVADAS:</strong> {totalAprovadas}</div>
-                  <div className="mb-2 ml-16">ATENDIDAS: {totalAprovadas}</div>
-                  <div><strong>TOTAL DE PEÇAS EM GARANTIA REPROVADAS:</strong> {totalReprovadas}</div>
+                <div className="border-t-2 border-gray-900 p-3 text-[11px] bg-gray-50/50">
+                  <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 w-fit">
+                    <div className="font-bold whitespace-nowrap text-gray-900">TOTAL DE PEÇAS EM GARANTIA APROVADAS:</div>
+                    <div className="font-bold text-gray-900 text-right">{totalAprovadas}</div>
+                    
+                    <div className="pl-4 text-gray-600 italic whitespace-nowrap">- ATENDIDAS:</div>
+                    <div className="text-gray-600 italic text-right">{totalAprovadas}</div>
+                    
+                    <div className="font-bold whitespace-nowrap text-gray-900">TOTAL DE PEÇAS EM GARANTIA REPROVADAS:</div>
+                    <div className="font-bold text-gray-900 text-right">{totalReprovadas}</div>
+                    
+                    <div className="pl-4 text-gray-600 italic whitespace-nowrap">- CORTESIAS:</div>
+                    <div className="text-gray-600 italic text-right">{totalCortesia}</div>
+                  </div>
                 </div>
               </div>
 
@@ -1183,10 +1207,10 @@ export function LaudoTecnico() {
 
                   <div className="border-t-2 border-gray-900 p-2 text-[10px] bg-gray-50">
                     <div className="flex justify-between px-4">
-                      <span>APROVADAS: <strong>{totalAprovadas}</strong></span>
-                      <span>REPROVADAS: <strong>{totalReprovadas}</strong></span>
+                      <span>APROVADO: <strong>{totalAprovadas}</strong></span>
+                      <span>REPROVADO: <strong>{totalReprovadas}</strong></span>
+                      <span>TOTAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas)}</strong></span>
                       <span>CORTESIA: <strong>{totalCortesia}</strong></span>
-                      <span>TOTAL GERAL: <strong>{Number(totalAprovadas) + Number(totalReprovadas) + Number(totalCortesia)}</strong></span>
                     </div>
                   </div>
                 </div>
