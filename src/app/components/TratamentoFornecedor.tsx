@@ -5,6 +5,7 @@ import { useLaudos } from "../contexts/LaudosContext";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DanfeMirror } from "./DanfeMirror";
 
 export function TratamentoFornecedor() {
   const { laudos, loading, atualizarLaudo } = useLaudos();
@@ -22,6 +23,7 @@ export function TratamentoFornecedor() {
   const [allCadastros, setAllCadastros] = useState<any[]>([]);
   const [selectedCarrierId, setSelectedCarrierId] = useState<string>("");
   const [cadastrosLoading, setCadastrosLoading] = useState(false);
+  const [naturezaOperacao, setNaturezaOperacao] = useState("DEVOLUÇÃO DE MERCADORIA OU DEMONSTRAÇÃO");
 
   const filteredSuppliers = FABRICANTES.filter(s =>
     s.toLowerCase().includes(searchTerm.toLowerCase())
@@ -235,58 +237,68 @@ export function TratamentoFornecedor() {
     <div className={`space-y-6 ${showMirrorModal ? "mirror-open" : ""}`}>
       <style>{`
         @media print {
-          /* Hide EVERYTHING by default */
-          body * {
-            visibility: hidden;
-          }
-          /* Show ONLY the mirror modal if the container has mirror-open */
-          .mirror-open .mirror-modal-print, .mirror-open .mirror-modal-print * {
-            visibility: visible !important;
-          }
-          /* Show conference table ONLY if mirror is NOT open */
-          :not(.mirror-open) .printable-content, :not(.mirror-open) .printable-content * {
-            visibility: visible !important;
-          }
-          /* Position correctly */
-          .printable-content, .mirror-modal-print {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100% !important;
-          }
-          /* Hide specific UI elements */
-          .no-print, button, .tabs-header, .fixed, .no-print * {
+          /* Hide EVERYTHING global first */
+          aside, header, nav, footer, .no-print, button {
             display: none !important;
-            visibility: hidden !important;
+          }
+
+          /* Hide the main content area content except the modal */
+          .content-wrapper {
+            display: none !important;
           }
           
-          /* Reset margins and background for printing */
-          body {
+          /* Reset the body and html to allow full document flow */
+          body, html {
+            height: auto !important;
+            overflow: visible !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
           }
-          /* Professional table for printing */
-          table {
+
+          /* Force the modal container to fill the screen as a normal block */
+          .mirror-open-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
-            border-collapse: collapse !important;
-            font-size: 10pt !important;
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            z-index: 9999 !important;
           }
-          th, td {
-            border: 1px solid #ddd !important;
-            padding: 8px !important;
+
+          /* Remove all modal chrome styling */
+          .mirror-modal-print {
+            position: static !important;
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
-          th {
-            background-color: #f8f9fa !important;
+
+          /* Hide modal internal header and footer */
+          .mirror-modal-print > div:first-child,
+          .mirror-modal-print > div:last-child {
+            display: none !important;
           }
-          /* Signature fixed at bottom */
-          .signature-section {
-            margin-top: 50px !important;
-            page-break-inside: avoid !important;
+
+          /* Ensure the content area is visible and takes up space */
+          .mirror-modal-print > div:nth-child(2) {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
           }
-          /* Remove page titles/dates added by browsers */
+
           @page {
             margin: 1.5cm;
+            size: auto;
           }
         }
       `}</style>
@@ -710,7 +722,7 @@ export function TratamentoFornecedor() {
 
       {/* NF Mirror Modal */}
       {showMirrorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300 no-print">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300 mirror-open-container">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] mirror-modal-print">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-3">
@@ -718,7 +730,7 @@ export function TratamentoFornecedor() {
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Espelho de Nota Fiscal (Dados Cadastrais)</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Espelho de Nota Fiscal (DANFE)</h3>
                   <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">{selectedSupplier}</p>
                 </div>
               </div>
@@ -730,148 +742,41 @@ export function TratamentoFornecedor() {
               </button>
             </div>
 
-            <div className="p-8 overflow-y-auto flex-1 space-y-8">
-              {/* Remetente (Fornecedor) Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-blue-100 pb-2">
-                  <Building2 size={20} className="text-blue-600" />
-                  <h4 className="text-sm font-bold text-blue-800 uppercase tracking-tighter">Remetente (Fornecedor)</h4>
-                </div>
-                {(() => {
-                  const supplierInfo = allCadastros.find(c =>
-                    (c.nome.trim().toUpperCase() === selectedSupplier?.trim().toUpperCase() ||
-                      c.nome.trim().toUpperCase().includes(selectedSupplier?.trim().toUpperCase() || "")) &&
-                    (c.classe === "fornecedor" || c.classe === "Fornecedor")
-                  );
-                  if (!supplierInfo) return <p className="text-xs text-red-500 italic">Dados do fornecedor não encontrados no cadastro master.</p>;
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 font-mono text-xs">
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Razão Social</p>
-                        <p className="font-bold text-gray-900">{supplierInfo.nome}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">CNPJ</p>
-                        <p className="font-bold text-gray-900">{supplierInfo.cnpj}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Inscrição Estadual</p>
-                        <p className="font-bold text-gray-900">{supplierInfo.inscricao_estadual || "ISENTO"}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Endereço</p>
-                        <p className="font-bold text-gray-900">
-                          {supplierInfo.endereco}{supplierInfo.numero ? `, ${supplierInfo.numero}` : ""}{supplierInfo.bairro ? ` - ${supplierInfo.bairro}` : ""}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Cidade / UF / CEP</p>
-                        <p className="font-bold text-gray-900">
-                          {supplierInfo.cidade || ""}{supplierInfo.uf ? ` / ${supplierInfo.uf}` : ""} - CEP: {supplierInfo.cep || ""}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Telefone</p>
-                        <p className="font-bold text-gray-900">{supplierInfo.fone || "-"}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">E-mail</p>
-                        <p className="font-bold text-gray-900">{supplierInfo.email || "-"}</p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
+            <div className="p-4 overflow-y-auto flex-1 bg-white">
+              {(() => {
+                const supplierInfo = allCadastros.find(c =>
+                  (c.nome.trim().toUpperCase() === selectedSupplier?.trim().toUpperCase() ||
+                    c.nome.trim().toUpperCase().includes(selectedSupplier?.trim().toUpperCase() || "")) &&
+                  (c.classe === "fornecedor" || c.classe === "Fornecedor")
+                );
+                const carrierInfo = allCadastros.find(c => c.cnpj === selectedCarrierId);
+                const issuerInfo = allCadastros.find(c => 
+                  c.nome.trim().toUpperCase() === profile?.empresa?.trim().toUpperCase() ||
+                  c.classe === "empresa" ||
+                  c.nome.toUpperCase().includes("AUTOMOTRIZ")
+                );
 
-              {/* Transportadora Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-green-100 pb-2">
-                  <Truck size={20} className="text-green-600" />
-                  <h4 className="text-sm font-bold text-green-800 uppercase tracking-tighter">Transportadora</h4>
-                </div>
-                {(() => {
-                  const carrierInfo = allCadastros.find(c => c.cnpj === selectedCarrierId);
-                  if (!carrierInfo) return <p className="text-xs text-gray-400 italic">Nenhuma transportadora selecionada.</p>;
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 font-mono text-xs">
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Razão Social</p>
-                        <p className="font-bold text-gray-900">{carrierInfo.nome}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">CNPJ</p>
-                        <p className="font-bold text-gray-900">{carrierInfo.cnpj}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Inscrição Estadual</p>
-                        <p className="font-bold text-gray-900">{carrierInfo.inscricao_estadual || "ISENTO"}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Endereço</p>
-                        <p className="font-bold text-gray-900">
-                          {carrierInfo.endereco}{carrierInfo.numero ? `, ${carrierInfo.numero}` : ""}{carrierInfo.bairro ? ` - ${carrierInfo.bairro}` : ""}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Cidade / UF / CEP</p>
-                        <p className="font-bold text-gray-900">
-                          {carrierInfo.cidade || ""}{carrierInfo.uf ? ` / ${carrierInfo.uf}` : ""} - CEP: {carrierInfo.cep || ""}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Telefone</p>
-                        <p className="font-bold text-gray-900">{carrierInfo.fone || "-"}</p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Products Table Section */}
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
-                  <ClipboardList size={20} className="text-gray-400" />
-                  <h4 className="text-sm font-bold text-gray-500 uppercase tracking-tighter">Itens Conferidos</h4>
-                </div>
-                <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                  <table className="w-full text-[11px] text-left">
-                    <thead className="bg-gray-100 border-b border-gray-200 text-gray-700 uppercase font-bold">
-                      <tr>
-                        <th className="px-4 py-3">Cód. Produto</th>
-                        <th className="px-4 py-3">Descrição</th>
-                        <th className="px-4 py-3 text-center">Quantidade</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 italic text-gray-600">
-                      {supplierProducts.map((p, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50/50">
-                          <td className="px-4 py-3 font-mono font-bold text-blue-700">{p.codigo}</td>
-                          <td className="px-4 py-3 truncate max-w-[300px]">{p.descricao || "Produto Garantia"}</td>
-                          <td className="px-4 py-3 text-center font-bold text-gray-900">{p.quantidade || 1}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                      <tr>
-                        <td colSpan={2} className="px-4 py-4 text-right font-bold text-gray-900 text-sm italic">TOTAL DE ITENS CONFERIDOS:</td>
-                        <td className="px-4 py-4 text-center font-bold text-blue-700 text-sm">
-                          {supplierProducts.reduce((acc, p) => acc + Number(p.quantidade || 1), 0)} UNIDADES
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-
-              <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl">
-                <p className="text-[10px] text-yellow-800 font-medium">
-                  <strong>Observação Legal:</strong> Este documento é um espelho para fins de conferência logística e não possui valor fiscal de Nota Fiscal Eletrônica (NF-e).
-                  As informações acima foram extraídas dos laudos conferidos por {conferenceStartedBy || profile?.nome}.
-                </p>
-              </div>
+                const uniqueNFs = Array.from(new Set(supplierProducts.map(p => p.laudoNfGarantia).filter(Boolean)));
+                const complementaryInfoLabels = uniqueNFs.length > 0 
+                  ? `REFERENTE ÀS NF-E: ${uniqueNFs.join(", ")}.` 
+                  : "";
+                
+                return (
+                  <DanfeMirror 
+                    issuer={issuerInfo}
+                    recipient={supplierInfo} 
+                    carrier={carrierInfo} 
+                    products={supplierProducts}
+                    responsible={conferenceStartedBy || profile?.nome || ""}
+                    complementaryInfo={complementaryInfoLabels}
+                    naturezaOperacao={naturezaOperacao}
+                    onNaturezaChange={setNaturezaOperacao}
+                  />
+                );
+              })()}
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3 no-print">
               <button
                 onClick={() => window.print()}
                 className="px-6 py-2.5 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-all font-bold text-sm shadow-md"
