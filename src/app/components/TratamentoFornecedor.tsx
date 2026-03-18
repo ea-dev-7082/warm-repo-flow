@@ -24,6 +24,7 @@ export function TratamentoFornecedor() {
   const [selectedCarrierId, setSelectedCarrierId] = useState<string>("");
   const [cadastrosLoading, setCadastrosLoading] = useState(false);
   const [naturezaOperacao, setNaturezaOperacao] = useState("DEVOLUÇÃO DE MERCADORIA OU DEMONSTRAÇÃO");
+  const [productOverrides, setProductOverrides] = useState<Record<string, { cst?: string, cfop?: string }>>({});
 
   const filteredSuppliers = FABRICANTES.filter(s =>
     s.toLowerCase().includes(searchTerm.toLowerCase())
@@ -761,16 +762,38 @@ export function TratamentoFornecedor() {
                   ? `REFERENTE ÀS NF-E: ${uniqueNFs.join(", ")}.` 
                   : "";
                 
+                const productsWithOverrides = supplierProducts.map(p => {
+                  const key = `${p.idLaudo}-${p.originalIdx}`;
+                  return {
+                    ...p,
+                    cst: productOverrides[key]?.cst || "",
+                    cfop: productOverrides[key]?.cfop || ""
+                  };
+                });
+
+                const handleProductChange = (index: number, field: string, value: string) => {
+                  const product = supplierProducts[index];
+                  const key = `${product.idLaudo}-${product.originalIdx}`;
+                  setProductOverrides(prev => ({
+                    ...prev,
+                    [key]: {
+                      ...prev[key],
+                      [field]: value
+                    }
+                  }));
+                };
+                
                 return (
                   <DanfeMirror 
                     issuer={issuerInfo}
                     recipient={supplierInfo} 
                     carrier={carrierInfo} 
-                    products={supplierProducts}
+                    products={productsWithOverrides}
                     responsible={conferenceStartedBy || profile?.nome || ""}
                     complementaryInfo={complementaryInfoLabels}
                     naturezaOperacao={naturezaOperacao}
                     onNaturezaChange={setNaturezaOperacao}
+                    onProductChange={handleProductChange}
                   />
                 );
               })()}

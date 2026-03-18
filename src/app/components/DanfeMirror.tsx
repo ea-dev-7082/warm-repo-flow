@@ -9,6 +9,7 @@ interface DanfeMirrorProps {
   complementaryInfo?: string;
   naturezaOperacao?: string;
   onNaturezaChange?: (value: string) => void;
+  onProductChange?: (index: number, field: string, value: string) => void;
 }
 
 export function DanfeMirror({ 
@@ -19,7 +20,8 @@ export function DanfeMirror({
   responsible, 
   complementaryInfo,
   naturezaOperacao = "DEVOLUÇÃO DE MERCADORIA OU DEMONSTRAÇÃO",
-  onNaturezaChange
+  onNaturezaChange,
+  onProductChange
 }: DanfeMirrorProps) {
   const currentDate = new Date().toLocaleDateString('pt-BR');
   const currentTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -49,56 +51,95 @@ export function DanfeMirror({
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
+
+        @page {
+          size: A4;
+          margin: 1cm;
+        }
+
         @media print {
+          body {
+            background: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
           .danfe-container {
-            padding: 0;
-            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
+            width: 190mm !important; /* A4 is 210mm, minus 2cm margins */
+            max-width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-scheme: light;
           }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
+          /* Ensure table and contents stay together */
+          .danfe-box {
+            break-inside: avoid;
+            -webkit-print-color-adjust: exact;
+          }
         }
+
         .print-only { display: none; }
         
-        .editable-field:hover {
-          background-color: #f0f7ff;
+        .editable-field {
+          background-color: #fef2f2; /* red-50 */
+          border: 1px dashed #ef4444; /* red-500 */
           cursor: text;
         }
+        .editable-field:hover {
+          background-color: #fee2e2; /* red-100 */
+        }
         .editable-field:focus-within {
-          background-color: #f0f7ff;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+          background-color: #fee2e2;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+        }
+        @media print {
+          .editable-field {
+            background-color: transparent !important;
+            border: none !important;
+            border-bottom: 1px solid black !important;
+          }
+          /* Custom overrides for print in table cells */
+          td .editable-field {
+             border-bottom: none !important;
+          }
         }
       `}</style>
 
       {/* RECEBEMOS DE... */}
-      <div className="flex w-full mb-4">
-        <div className="danfe-box flex-grow text-justify leading-none py-1">
+      <div className="flex w-full mb-2">
+        <div className="danfe-box flex-grow text-justify leading-none py-0.5">
           <span className="danfe-label">RECEBEMOS DE {issuer?.nome || "AUTOMOTRIZ PEÇAS"} OS PRODUTOS E/OU SERVIÇOS CONSTANTES DA NOTA FISCAL ELETRÔNICA INDICADA ABAIXO. EMISSÃO: {currentDate} VALOR TOTAL: R$ 0,00 DESTINATÁRIO: {recipient?.nome || "CONSULTE O FORNECEDOR"}</span>
         </div>
-        <div className="danfe-box w-32 flex flex-col items-center justify-center">
-          <span className="font-bold text-lg">NF-e</span>
-          <span className="text-[8px]">Nº 000.000.000</span>
-          <span className="text-[8px]">SÉRIE 0</span>
+        <div className="danfe-box w-28 flex flex-col items-center justify-center">
+          <span className="font-bold text-base">NF-e</span>
+          <span className="text-[7px]">Nº 000.000.000</span>
+          <span className="text-[7px]">SÉRIE 0</span>
         </div>
       </div>
 
-      <div className="flex w-full mb-4">
-        <div className="danfe-box w-32 h-16">
+      <div className="flex w-full mb-1">
+        <div className="danfe-box w-28 h-10">
           <span className="danfe-label">DATA DE RECEBIMENTO</span>
         </div>
-        <div className="danfe-box flex-grow h-16">
+        <div className="danfe-box flex-grow h-10">
           <span className="danfe-label">IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR</span>
         </div>
       </div>
 
-      <div className="h-4 border-b-2 border-dashed border-black mb-4"></div>
+      <div className="h-1 border-b border-dashed border-black mb-1"></div>
 
       {/* DANFE IDENTIFICATION */}
       <div className="flex w-full">
-        <div className="danfe-box w-1/3 p-4 flex flex-col items-center justify-center min-h-[100px]">
-          <Building2 size={32} className="mb-2" />
-          <span className="font-bold text-sm text-center">{issuer?.nome || "AUTOMOTRIZ INDÚSTRIA E COMÉRCIO"}</span>
-          <span className="text-[8px] text-center">{issuer?.endereco || "RUA EXEMPLO"}, {issuer?.numero || "123"} - {issuer?.bairro || "BAIRRO"}</span>
-          <span className="text-[8px] text-center">{issuer?.cidade || "CIDADE"} - {issuer?.uf || "UF"} - {issuer?.cep || "00000-000"}</span>
+        <div className="danfe-box w-1/3 p-2 flex flex-col items-center justify-center min-h-[80px]">
+          <Building2 size={24} className="mb-1" />
+          <span className="font-bold text-xs text-center">{issuer?.nome || "AUTOMOTRIZ INDÚSTRIA E COMÉRCIO"}</span>
+          <span className="text-[7px] text-center">{issuer?.endereco || "RUA EXEMPLO"}, {issuer?.numero || "123"} - {issuer?.bairro || "BAIRRO"}</span>
+          <span className="text-[7px] text-center">{issuer?.cidade || "CIDADE"} - {issuer?.uf || "UF"} - {issuer?.cep || "00000-000"}</span>
         </div>
         <div className="danfe-box w-1/6 flex flex-col items-center justify-center text-center">
           <span className="font-bold text-lg">DANFE</span>
@@ -131,7 +172,7 @@ export function DanfeMirror({
       </div>
 
       <div className="flex w-full">
-        <div className="danfe-box w-1/2 relative group editable-field transition-colors bg-blue-50/30">
+        <div className="danfe-box w-1/2 relative group editable-field transition-colors">
           <div className="flex justify-between items-start">
             <span className="danfe-label">NATUREZA DA OPERAÇÃO</span>
             <Edit2 size={8} className="text-blue-400 no-print opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -153,7 +194,7 @@ export function DanfeMirror({
         </div>
       </div>
 
-      <div className="flex w-full mb-2">
+      <div className="flex w-full mb-1">
         <div className="danfe-box w-1/3">
           <span className="danfe-label">INSCRIÇÃO ESTADUAL</span>
           <span className="danfe-value">{issuer?.inscricao_estadual || "000000000000"}</span>
@@ -202,7 +243,7 @@ export function DanfeMirror({
           <span className="danfe-value">{currentDate}</span>
         </div>
       </div>
-      <div className="flex w-full mb-2">
+      <div className="flex w-full mb-1">
         <div className="danfe-box w-1/3">
           <span className="danfe-label">MUNICÍPIO</span>
           <span className="danfe-value">{recipient?.cidade || "CIDADE"}</span>
@@ -227,10 +268,10 @@ export function DanfeMirror({
 
       {/* FATURA / DUPLICATAS */}
       <div className="bg-gray-100 font-bold px-2 border border-black border-b-0 text-[8px] uppercase">Fatura / Duplicatas</div>
-      <div className="flex w-full mb-2">
-        <div className="danfe-box flex-grow min-h-[16px]">
+      <div className="flex w-full mb-1">
+        <div className="danfe-box flex-grow min-h-[14px]">
           <span className="danfe-label">NÚMERO, VENCIMENTO E VALOR</span>
-          <span className="danfe-value text-[8px]">ESPELHO PARA CONFERÊNCIA - SEM VALOR DE FATURA</span>
+          <span className="danfe-value text-[7px]">ESPELHO PARA CONFERÊNCIA - SEM VALOR DE FATURA</span>
         </div>
       </div>
 
@@ -243,7 +284,7 @@ export function DanfeMirror({
         <div className="danfe-box flex-grow"><span className="danfe-label">VALOR DO ICMS S.T.</span><span className="danfe-value text-right">0,00</span></div>
         <div className="danfe-box flex-grow"><span className="danfe-label">VALOR TOTAL DOS PRODUTOS</span><span className="danfe-value text-right">0,00</span></div>
       </div>
-      <div className="flex w-full mb-2">
+      <div className="flex w-full mb-1">
         <div className="danfe-box flex-grow"><span className="danfe-label">VALOR DO FRETE</span><span className="danfe-value text-right">0,00</span></div>
         <div className="danfe-box flex-grow"><span className="danfe-label">VALOR DO SEGURO</span><span className="danfe-value text-right">0,00</span></div>
         <div className="danfe-box flex-grow"><span className="danfe-label">DESCONTO</span><span className="danfe-value text-right">0,00</span></div>
@@ -280,7 +321,7 @@ export function DanfeMirror({
           <span className="danfe-value">{carrier?.cnpj || ""}</span>
         </div>
       </div>
-      <div className="flex w-full mb-2">
+      <div className="flex w-full mb-1">
         <div className="danfe-box w-2/3">
           <span className="danfe-label">ENDEREÇO</span>
           <span className="danfe-value">{carrier?.endereco} {carrier?.numero} {carrier?.bairro}</span>
@@ -301,24 +342,24 @@ export function DanfeMirror({
 
       {/* DADOS DOS PRODUTOS / SERVIÇOS */}
       <div className="bg-gray-100 font-bold px-2 border border-black border-b-0 text-[8px] uppercase">Dados dos Produtos / Serviços</div>
-      <div className="border border-black min-h-[300px]">
+      <div className="border border-black min-h-[220px]">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-black text-[7px] font-bold">
-              <th className="border-r border-black px-1 py-1 w-16">CÓDIGO</th>
-              <th className="border-r border-black px-1 py-1">DESCRIÇÃO DOS PRODUTOS / SERVIÇOS</th>
-              <th className="border-r border-black px-1 py-1 w-12">NCM/SH</th>
-              <th className="border-r border-black px-1 py-1 w-8">CST</th>
-              <th className="border-r border-black px-1 py-1 w-8">CFOP</th>
-              <th className="border-r border-black px-1 py-1 w-8">UN</th>
-              <th className="border-r border-black px-1 py-1 w-10">QUANT.</th>
-              <th className="border-r border-black px-1 py-1 w-16">VALOR UNIT.</th>
-              <th className="border-r border-black px-1 py-1 w-16">VALOR TOTAL</th>
-              <th className="border-r border-black px-1 py-1 w-16">B.CÁLC. ICMS</th>
-              <th className="border-r border-black px-1 py-1 w-16">VALOR ICMS</th>
-              <th className="border-r border-black px-1 py-1 w-16">VALOR IPI</th>
-              <th className="border-r border-black px-1 py-1 w-8">ALÍQ. ICMS</th>
-              <th className="px-1 py-1 w-8">ALÍQ. IPI</th>
+              <th className="border-r border-black px-1 py-0.5 w-16">CÓDIGO</th>
+              <th className="border-r border-black px-1 py-0.5">DESCRIÇÃO DOS PRODUTOS / SERVIÇOS</th>
+              <th className="border-r border-black px-1 py-0.5 w-12">NCM/SH</th>
+              <th className="border-r border-black px-1 py-0.5 w-8">CST/CSOSN</th>
+              <th className="border-r border-black px-1 py-0.5 w-10">CFOP</th>
+              <th className="border-r border-black px-1 py-0.5 w-8">UN</th>
+              <th className="border-r border-black px-1 py-0.5 w-10">QUANT.</th>
+              <th className="border-r border-black px-1 py-0.5 w-16">VALOR UNIT.</th>
+              <th className="border-r border-black px-1 py-0.5 w-16">VALOR TOTAL</th>
+              <th className="border-r border-black px-1 py-0.5 w-16">B.CÁLC. ICMS</th>
+              <th className="border-r border-black px-1 py-0.5 w-16">VALOR ICMS</th>
+              <th className="border-r border-black px-1 py-0.5 w-16">VALOR IPI</th>
+              <th className="border-r border-black px-1 py-0.5 w-8">ALÍQ. ICMS</th>
+              <th className="px-1 py-0.5 w-8">ALÍQ. IPI</th>
             </tr>
           </thead>
           <tbody>
@@ -327,8 +368,28 @@ export function DanfeMirror({
                 <td className="border-r border-black px-1 py-0.5">{p.codigo}</td>
                 <td className="border-r border-black px-1 py-0.5 truncate max-w-[200px]">{p.descricao || "PRODUTO GARANTIA"}</td>
                 <td className="border-r border-black px-1 py-0.5"></td>
-                <td className="border-r border-black px-1 py-0.5 text-center"></td>
-                <td className="border-r border-black px-1 py-0.5 text-center"></td>
+                <td className="border-r border-black px-1 py-0.5 text-center p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.cst || ""}
+                      onChange={(e) => onProductChange?.(idx, 'cst', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.cst || ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-center p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.cfop || ""}
+                      onChange={(e) => onProductChange?.(idx, 'cfop', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.cfop || ""}</span>
+                  </div>
+                </td>
                 <td className="border-r border-black px-1 py-0.5 text-center">UN</td>
                 <td className="border-r border-black px-1 py-0.5 text-right">{p.quantidade || 1}</td>
                 <td className="border-r border-black px-1 py-0.5 text-right">0,00</td>
@@ -346,7 +407,7 @@ export function DanfeMirror({
 
       {/* CÁLCULO DO ISSQN */}
       <div className="bg-gray-100 font-bold px-2 border border-black border-b-0 text-[8px] uppercase">Cálculo do ISSQN</div>
-      <div className="flex w-full mb-2">
+      <div className="flex w-full mb-1">
         <div className="danfe-box w-1/4">
           <span className="danfe-label">INSCRIÇÃO MUNICIPAL</span>
           <span className="danfe-value"></span>
@@ -366,8 +427,8 @@ export function DanfeMirror({
       </div>
 
       {/* DADOS ADICIONAIS */}
-      <div className="flex w-full mt-2">
-        <div className="danfe-box w-2/3 min-h-[60px]">
+      <div className="flex w-full mt-1">
+        <div className="danfe-box w-2/3 min-h-[50px]">
           <span className="danfe-label">INFORMAÇÕES COMPLEMENTARES</span>
           <div className="text-[7px] leading-tight whitespace-pre-wrap">
             ESTE DOCUMENTO É UM ESPELHO PARA FINS DE CONFERÊNCIA LOGÍSTICA E NÃO POSSUI VALOR FISCAL.<br />
