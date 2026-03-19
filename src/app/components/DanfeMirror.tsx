@@ -73,6 +73,7 @@ export function DanfeMirror({
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             color-scheme: light;
+            zoom: 0.89 !important;
           }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
@@ -107,6 +108,47 @@ export function DanfeMirror({
           td .editable-field {
              border-bottom: none !important;
           }
+        }
+
+        .observations-section {
+          margin-top: 12px;
+          padding: 12px;
+          border: 2px dashed #000;
+          background-color: #f9fafb;
+          font-family: "Georgia", serif;
+        }
+
+        .observations-title {
+          font-size: 16px;
+          font-weight: bold;
+          margin-bottom: 8px;
+          color: #000;
+          text-transform: uppercase;
+        }
+
+        .observations-list {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #000;
+          list-style-type: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .observations-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .observations-item::before {
+          content: "•";
+          font-weight: bold;
+        }
+
+        .danfe-container {
+          zoom: 1.5;
+          margin: 0 auto;
         }
       `}</style>
 
@@ -367,7 +409,17 @@ export function DanfeMirror({
               <tr key={idx} className="text-[7px]">
                 <td className="border-r border-black px-1 py-0.5">{p.codigo}</td>
                 <td className="border-r border-black px-1 py-0.5 truncate max-w-[200px]">{p.descricao || "PRODUTO GARANTIA"}</td>
-                <td className="border-r border-black px-1 py-0.5"></td>
+                <td className="border-r border-black px-1 py-0.5 text-center p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.ncm || ""}
+                      onChange={(e) => onProductChange?.(idx, 'ncm', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.ncm || ""}</span>
+                  </div>
+                </td>
                 <td className="border-r border-black px-1 py-0.5 text-center p-0">
                   <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
                     <input 
@@ -390,15 +442,105 @@ export function DanfeMirror({
                     <span className="print-only font-bold">{p.cfop || ""}</span>
                   </div>
                 </td>
-                <td className="border-r border-black px-1 py-0.5 text-center">UN</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">{p.quantidade || 1}</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">0,00</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">0,00</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">0,00</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">0,00</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">0,00</td>
-                <td className="border-r border-black px-1 py-0.5 text-right">0</td>
-                <td className="px-1 py-0.5 text-right">0</td>
+                <td className="border-r border-black px-1 py-0.5 text-center p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.unidade ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'unidade', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.unidade ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.quantidade ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'quantidade', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.quantidade ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.vUnit ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'vUnit', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.vUnit ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.vProd ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'vProd', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.vProd ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.vBCICMS ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'vBCICMS', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.vBCICMS ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.vICMS ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'vICMS', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.vICMS ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.vIPI ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'vIPI', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.vIPI ?? ""}</span>
+                  </div>
+                </td>
+                <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.pICMS ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'pICMS', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.pICMS ?? ""}</span>
+                  </div>
+                </td>
+                <td className="px-1 py-0.5 text-right p-0">
+                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
+                    <input 
+                      type="text"
+                      value={p.pIPI ?? ""}
+                      onChange={(e) => onProductChange?.(idx, 'pIPI', e.target.value)}
+                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
+                    />
+                    <span className="print-only font-bold">{p.pIPI ?? ""}</span>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -440,6 +582,16 @@ export function DanfeMirror({
         <div className="danfe-box flex-grow min-h-[60px]">
           <span className="danfe-label">RESERVADO AO FISCO</span>
         </div>
+      </div>
+
+      {/* NOVO CAMPO: OBSERVAÇÕES */}
+      <div className="observations-section">
+        <h4 className="observations-title">Lembretes importantes:</h4>
+        <ul className="observations-list">
+          <li className="observations-item">Conferir Natureza da operação, CFOP e CST</li>
+          <li className="observations-item">Confirmar se é necessário destacar ICMS e IPI</li>
+          <li className="observations-item">Verificar frete cortesia</li>
+        </ul>
       </div>
     </div>
   );

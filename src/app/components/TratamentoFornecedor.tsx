@@ -25,122 +25,9 @@ export function TratamentoFornecedor() {
   const [cadastrosLoading, setCadastrosLoading] = useState(false);
   const [naturezaOperacao, setNaturezaOperacao] = useState("DEVOLUÇÃO DE MERCADORIA OU DEMONSTRAÇÃO");
   const [productOverrides, setProductOverrides] = useState<Record<string, { cst?: string, cfop?: string }>>({});
-
-  const filteredSuppliers = FABRICANTES.filter(s =>
-    s.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleSelectSupplier = (supplier: string, mode: "pending" | "finalized" = "pending") => {
-    setSelectedSupplier(supplier);
-    setViewMode(mode);
-    setActiveTab("laudo");
-    setIsConferringLocally(false);
-    setLocalChecks({});
-  };
-
-  useEffect(() => {
-    fetchCadastros();
-  }, []);
-
-  const fetchCadastros = async () => {
-    setCadastrosLoading(true);
-    try {
-      const { data, error } = await (supabase as any)
-        .from("cadastros")
-        .select("*");
-      if (error) throw error;
-      setAllCadastros(data || []);
-    } catch (error: any) {
-      console.error("Error fetching cadastros:", error);
-    } finally {
-      setCadastrosLoading(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const conferenceStartedBy = useMemo(() => {
-    if (!selectedSupplier) return null;
-    for (const laudo of laudos) {
-      if (laudo.conferente_fabricante?.[selectedSupplier]) {
-        return laudo.conferente_fabricante[selectedSupplier];
-      }
-    }
-    return null;
-  }, [laudos, selectedSupplier]);
-
-  const handleStartConference = () => {
-    if (!selectedSupplier || !profile?.nome) return;
-
-    // In partitioning mode, starting a conference and checking items 
-    // means they will leave the "pending" view once saved.
-    const initialChecks: Record<string, boolean> = {};
-    supplierProducts.forEach(p => {
-      if (p.conferido) {
-        initialChecks[`${p.idLaudo}-${p.originalIdx}`] = true;
-      }
-    });
-
-    setLocalChecks(initialChecks);
-    setIsConferringLocally(true);
-    toast.info("Conferência iniciada. Marque os itens e clique em FINALIZAR.");
-  };
-
-  const handleToggleLocalCheck = (idLaudo: string, productIdxAtLaudo: number) => {
-    const key = `${idLaudo}-${productIdxAtLaudo}`;
-    setLocalChecks(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  const handleFinalizeConference = async () => {
-    if (!selectedSupplier || !profile?.nome) return;
-
-    setIsFinalizing(true);
-    try {
-      // Find all products that were either ALREADY checked in DB or are NOW checked in local state
-      const laudoIds = Array.from(new Set(supplierProducts.map(p => p.idLaudo)));
-
-      const promises = laudoIds.map(async (id) => {
-        const laudo = laudos.find(l => l.id === id);
-        if (!laudo || !laudo.produtos) return;
-
-        let hasChange = false;
-        const updatedProdutos = laudo.produtos.map((p, idx) => {
-          const key = `${id}-${idx}`;
-          if (localChecks.hasOwnProperty(key)) {
-            const newValue = !!localChecks[key];
-            if (p.conferido !== newValue) hasChange = true;
-            return { ...p, conferido: newValue };
-          }
-          return p;
-        });
-
-        const currentConferentes = laudo.conferente_fabricante || {};
-        const newConferentes = {
-          ...currentConferentes,
-          [selectedSupplier]: profile.nome
-        };
-
-        return atualizarLaudo(id, {
-          produtos: updatedProdutos,
-          conferente_fabricante: newConferentes
-        });
-      });
-
-      await Promise.all(promises);
-      setIsConferringLocally(false);
-      toast.success(`Conferência de ${selectedSupplier} finalizada! Os itens foram enviados para o histórico.`);
-    } catch (error) {
-      console.error("Erro ao finalizar conferência:", error);
-      toast.error("Falha ao salvar conferência");
-    } finally {
-      setIsFinalizing(false);
-    }
-  };
+  const [selectedConferenceDate, setSelectedConferenceDate] = useState<string | null>(null);
+  const [historySearchTerm, setHistorySearchTerm] = useState("");
+  const [historyDateFilter, setHistoryDateFilter] = useState("");
 
   // Extract all products for the selected supplier from all laudos
   const supplierProducts = useMemo(() => {
@@ -172,11 +59,15 @@ export function TratamentoFornecedor() {
             const currentConferido = isConferringLocally ? !!localChecks[key] : !!p.conferido;
 
             // Partitioning logic:
-            // If mode is pending, show only NOT conferido
-            // If mode is finalized, show only conferido
-            const shouldInclude = (viewMode === "pending" && !currentConferido) ||
-              (viewMode === "finalized" && currentConferido) ||
-              (isConferringLocally && viewMode === "pending"); // Keep items visible while toggling in local session
+            // If mode is pending, show only items NOT YET conferido in DB
+            // If mode is finalized, show items belonging to the selected session
+            const shouldInclude = (viewMode === "pending" && !p.conferido) ||
+              (viewMode === "finalized" && 
+                (selectedConferenceDate 
+                  ? p.data_conferencia === selectedConferenceDate 
+                  : p.conferido // Fallback for legacy items or showing all if no date selected
+                )
+              );
 
             if (shouldInclude) {
               products.push({
@@ -194,60 +85,270 @@ export function TratamentoFornecedor() {
       }
     });
     return products;
-  }, [laudos, selectedSupplier, isConferringLocally, localChecks, viewMode]);
+  }, [laudos, selectedSupplier, isConferringLocally, localChecks, viewMode, selectedConferenceDate]);
 
-  // Extract finalized conferences
+  // Extract finalized conferences as separate sessions
   const conferencesHistory = useMemo(() => {
-    const history: Record<string, { manufacturer: string, responsible: string, date: string }> = {};
+    const sessions: any[] = [];
+    const sessionMap = new Map<string, { manufacturer: string, responsible: string, date: string }>();
 
     laudos.forEach(laudo => {
-      if (laudo.conferente_fabricante) {
-        Object.entries(laudo.conferente_fabricante).forEach(([manufacturer, responsible]) => {
-          // A manufacturer is in history only if it has at least one conferido=true product in any laudo
-          const hasConferidoProduct = laudo.produtos?.some((p: any) => {
-            // Check if product belongs to this manufacturer and is checked
-            if (p.conferido !== true) return false;
-            if (p.fabricante?.startsWith('{')) {
+      if (laudo.produtos && Array.isArray(laudo.produtos)) {
+        laudo.produtos.forEach((p: any) => {
+          if (p.conferido && p.data_conferencia && p.fabricante) {
+            let manufacturer = "";
+            if (p.fabricante.startsWith('{')) {
               try {
                 const parsed = JSON.parse(p.fabricante);
-                return Object.values(parsed).some(val =>
-                  typeof val === 'string' && val.trim().toUpperCase() === manufacturer.trim().toUpperCase()
-                );
-              } catch { return false; }
+                manufacturer = Object.values(parsed).find(v => typeof v === 'string') as string || "";
+              } catch {}
+            } else {
+              manufacturer = p.fabricante;
             }
-            return p.fabricante?.trim().toUpperCase() === manufacturer.trim().toUpperCase();
-          });
 
-          if (hasConferidoProduct) {
-            if (!history[manufacturer] || laudo.data > history[manufacturer].date) {
-              history[manufacturer] = {
-                manufacturer,
-                responsible: responsible as string,
-                date: laudo.data
-              };
+            if (manufacturer) {
+              const sessionKey = `${manufacturer.trim().toUpperCase()}-${p.data_conferencia}-${p.conferente}`;
+              if (!sessionMap.has(sessionKey)) {
+                sessionMap.set(sessionKey, {
+                  manufacturer: manufacturer.trim(),
+                  responsible: p.conferente || "Sistema",
+                  date: p.data_conferencia
+                });
+              }
+            }
+          } else if (p.conferido && !p.data_conferencia && laudo.conferente_fabricante && p.fabricante) {
+            // Legacy handling for items without data_conferencia
+            let manufacturer = "";
+            if (p.fabricante.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(p.fabricante);
+                manufacturer = Object.values(parsed).find(v => typeof v === 'string') as string || "";
+              } catch {}
+            } else {
+              manufacturer = p.fabricante;
+            }
+
+            if (manufacturer && laudo.conferente_fabricante[manufacturer]) {
+                const sessionKey = `${manufacturer.trim().toUpperCase()}-legacy-${laudo.id}`;
+                if (!sessionMap.has(sessionKey)) {
+                  sessionMap.set(sessionKey, {
+                    manufacturer: manufacturer.trim(),
+                    responsible: laudo.conferente_fabricante[manufacturer] as string,
+                    date: laudo.data
+                  });
+                }
             }
           }
         });
       }
     });
 
-    return Object.values(history).sort((a, b) => b.date.localeCompare(a.date));
+    return Array.from(sessionMap.values()).sort((a, b) => b.date.localeCompare(a.date));
   }, [laudos]);
+
+  const conferenceStartedBy = useMemo(() => {
+    if (!selectedSupplier) return null;
+    for (const laudo of laudos) {
+      if (laudo.conferente_fabricante?.[selectedSupplier]) {
+        return laudo.conferente_fabricante[selectedSupplier];
+      }
+    }
+    return null;
+  }, [laudos, selectedSupplier]);
+
+  const filteredConferencesHistory = useMemo(() => {
+    return conferencesHistory.filter(item => {
+      const matchesSearch = item.manufacturer.toLowerCase().includes(historySearchTerm.toLowerCase());
+      const matchesDate = !historyDateFilter || item.date.startsWith(historyDateFilter);
+      return matchesSearch && matchesDate;
+    });
+  }, [conferencesHistory, historySearchTerm, historyDateFilter]);
+
+  // Props for the DANFE Mirror, extracted for reuse in preview and background printing
+  const mirrorProps = useMemo(() => {
+    if (!selectedSupplier || viewMode !== "finalized") return null;
+
+    const supplierInfo = allCadastros.find(c =>
+      (c.nome.trim().toUpperCase() === selectedSupplier?.trim().toUpperCase() ||
+        c.nome.trim().toUpperCase().includes(selectedSupplier?.trim().toUpperCase() || "")) &&
+      (c.classe === "fornecedor" || c.classe === "Fornecedor")
+    );
+
+    const carrierInfo = allCadastros.find(c => c.cnpj === selectedCarrierId);
+
+    const issuerInfo = allCadastros.find(c => 
+      c.nome.trim().toUpperCase() === profile?.empresa?.trim().toUpperCase() ||
+      c.classe === "empresa" ||
+      c.nome.toUpperCase().includes("AUTOMOTRIZ")
+    );
+
+    const productsWithOverrides = supplierProducts.map((p, idx) => {
+      const key = `${p.idLaudo}-${p.originalIdx}`;
+      const overrides = productOverrides[key] || {};
+      return {
+        ...p,
+        cst: overrides.cst ?? p.cst,
+        cfop: overrides.cfop ?? p.cfop
+      };
+    });
+
+    const complementaryInfoLabels = Array.from(new Set(supplierProducts.map(p => p.laudoCliente))).join(", ");
+
+    return {
+      issuer: issuerInfo,
+      recipient: supplierInfo,
+      carrier: carrierInfo,
+      products: productsWithOverrides,
+      responsible: conferenceStartedBy || profile?.nome || "",
+      complementaryInfo: complementaryInfoLabels,
+      naturezaOperacao,
+      onNaturezaChange: setNaturezaOperacao,
+      onProductChange: (index: number, field: string, value: string) => {
+        const p = productsWithOverrides[index];
+        const key = `${p.idLaudo}-${p.originalIdx}`;
+        setProductOverrides(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            [field]: value
+          }
+        }));
+      }
+    };
+  }, [selectedSupplier, viewMode, allCadastros, selectedCarrierId, profile, supplierProducts, productOverrides, naturezaOperacao, conferenceStartedBy]);
+
+  const filteredSuppliers = FABRICANTES.filter(s =>
+    s.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelectSupplier = (supplier: string, mode: "pending" | "finalized" = "pending", conferenceDate: string | null = null) => {
+    setSelectedSupplier(supplier);
+    setViewMode(mode);
+    setSelectedConferenceDate(conferenceDate);
+    setActiveTab("laudo");
+    setIsConferringLocally(false);
+    setLocalChecks({});
+  };
+
+  useEffect(() => {
+    fetchCadastros();
+  }, []);
+
+  const fetchCadastros = async () => {
+    setCadastrosLoading(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("cadastros")
+        .select("*");
+      if (error) throw error;
+      setAllCadastros(data || []);
+    } catch (error: any) {
+      console.error("Error fetching cadastros:", error);
+    } finally {
+      setCadastrosLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+
+  const handleStartConference = () => {
+    if (!selectedSupplier || !profile?.nome) return;
+
+    // In partitioning mode, starting a conference and checking items 
+    // means they will leave the "pending" view once saved.
+    const initialChecks: Record<string, boolean> = {};
+    supplierProducts.forEach(p => {
+      if (p.conferido) {
+        initialChecks[`${p.idLaudo}-${p.originalIdx}`] = true;
+      }
+    });
+
+    setLocalChecks(initialChecks);
+    setIsConferringLocally(true);
+    toast.info("Conferência iniciada. Marque os itens e clique em FINALIZAR.");
+  };
+
+  const handleToggleLocalCheck = (idLaudo: string, productIdxAtLaudo: number) => {
+    const key = `${idLaudo}-${productIdxAtLaudo}`;
+    setLocalChecks(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleFinalizeConference = async () => {
+    if (!selectedSupplier || !profile?.nome) return;
+
+    setIsFinalizing(true);
+    try {
+      const sessionTimestamp = new Date().toISOString();
+      const laudoIds = Array.from(new Set(supplierProducts.map(p => p.idLaudo)));
+
+      const promises = laudoIds.map(async (id) => {
+        const laudo = laudos.find(l => l.id === id);
+        if (!laudo || !laudo.produtos) return;
+
+        let hasChange = false;
+        const updatedProdutos = laudo.produtos.map((p, idx) => {
+          const key = `${id}-${idx}`;
+          if (localChecks.hasOwnProperty(key)) {
+            const isCheckedNow = !!localChecks[key];
+            // If item is being checked in this session, assign it to the session
+            if (isCheckedNow && !p.conferido) {
+              hasChange = true;
+              return { 
+                ...p, 
+                conferido: true, 
+                data_conferencia: sessionTimestamp,
+                conferente: profile.nome
+              };
+            }
+            // If it was already checked and we are toggling it OFF (less likely but possible)
+            if (!isCheckedNow && p.conferido) {
+               hasChange = true;
+               const { conferido, data_conferencia, conferente, ...rest } = p;
+               return rest;
+            }
+          }
+          return p;
+        });
+
+        const currentConferentes = laudo.conferente_fabricante || {};
+        const newConferentes = {
+          ...currentConferentes,
+          [selectedSupplier]: profile.nome
+        };
+
+        return atualizarLaudo(id, {
+          produtos: updatedProdutos,
+          conferente_fabricante: newConferentes
+        });
+      });
+
+      await Promise.all(promises);
+      setIsConferringLocally(false);
+      toast.success(`Conferência de ${selectedSupplier} finalizada! Os itens foram enviados para o histórico.`);
+    } catch (error) {
+      console.error("Erro ao finalizar conferência:", error);
+      toast.error("Falha ao salvar conferência");
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
 
   return (
     <div className={`space-y-6 ${showMirrorModal ? "mirror-open" : ""}`}>
       <style>{`
         @media print {
           /* Hide EVERYTHING global first */
-          aside, header, nav, footer, .no-print, button {
+          aside, header, nav, footer, .no-print, button, .tabs-header {
             display: none !important;
           }
 
-          /* Hide the main content area content except the modal */
-          .content-wrapper {
-            display: none !important;
-          }
-          
           /* Reset the body and html to allow full document flow */
           body, html {
             height: auto !important;
@@ -257,7 +358,17 @@ export function TratamentoFornecedor() {
             background: white !important;
           }
 
-          /* Force the modal container to fill the screen as a normal block */
+          /* Force the list view to be hidden when we want to print the mirror */
+          .content-wrapper {
+            display: none !important;
+          }
+
+          /* Show the print-only mirror */
+          .print-only-danfe {
+            display: block !important;
+            width: 100% !important;
+          }
+          
           .mirror-open-container {
             position: absolute !important;
             left: 0 !important;
@@ -419,17 +530,52 @@ export function TratamentoFornecedor() {
 
           {activeTab === "historico" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="border-b border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900">Histórico de Conferências</h3>
-                <p className="text-sm text-gray-500">Lista de fornecedores que já tiveram laudos conferidos e salvos.</p>
+              <div className="border-b border-gray-100 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Histórico de Conferências</h3>
+                  <p className="text-sm text-gray-500">Lista de fornecedores que já tiveram laudos conferidos e salvos.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Filtrar fornecedor..."
+                      value={historySearchTerm}
+                      onChange={(e) => setHistorySearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="date"
+                      value={historyDateFilter}
+                      onChange={(e) => setHistoryDateFilter(e.target.value)}
+                      className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    />
+                  </div>
+                  {(historySearchTerm || historyDateFilter) && (
+                    <button
+                      onClick={() => {
+                        setHistorySearchTerm("");
+                        setHistoryDateFilter("");
+                      }}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      Limpar Filtros
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {conferencesHistory.length > 0 ? (
+              {filteredConferencesHistory.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {conferencesHistory.map((item, idx) => (
+                  {filteredConferencesHistory.map((item, idx) => (
                     <div
                       key={idx}
-                      onClick={() => handleSelectSupplier(item.manufacturer, "finalized")}
+                      onClick={() => handleSelectSupplier(item.manufacturer, "finalized", item.date)}
                       className="p-5 bg-white border border-gray-200 rounded-xl hover:border-green-400 hover:shadow-md transition-all cursor-pointer group"
                     >
                       <div className="flex flex-col gap-4">
@@ -456,7 +602,7 @@ export function TratamentoFornecedor() {
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <Calendar size={14} />
-                              <span>Última Conferência: <strong>{new Date(item.date).toLocaleDateString('pt-BR')}</strong></span>
+                              <span>Última Conferência: <strong>{new Date(item.date).toLocaleString('pt-BR')}</strong></span>
                             </div>
                           </div>
                         </div>
@@ -537,7 +683,13 @@ export function TratamentoFornecedor() {
                         Visualizar Espelho NF
                       </button>
                       <button
-                        onClick={handlePrint}
+                        onClick={() => {
+                          if (!selectedCarrierId) {
+                            toast.error("Selecione uma transportadora para o espelho.");
+                            return;
+                          }
+                          handlePrint();
+                        }}
                         className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all font-bold text-sm shadow-md active:scale-95"
                       >
                         <Printer size={18} />
@@ -724,7 +876,7 @@ export function TratamentoFornecedor() {
       {/* NF Mirror Modal */}
       {showMirrorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300 mirror-open-container">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] mirror-modal-print">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] overflow-hidden flex flex-col max-h-[95vh] mirror-modal-print">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
@@ -744,59 +896,9 @@ export function TratamentoFornecedor() {
             </div>
 
             <div className="p-4 overflow-y-auto flex-1 bg-white">
-              {(() => {
-                const supplierInfo = allCadastros.find(c =>
-                  (c.nome.trim().toUpperCase() === selectedSupplier?.trim().toUpperCase() ||
-                    c.nome.trim().toUpperCase().includes(selectedSupplier?.trim().toUpperCase() || "")) &&
-                  (c.classe === "fornecedor" || c.classe === "Fornecedor")
-                );
-                const carrierInfo = allCadastros.find(c => c.cnpj === selectedCarrierId);
-                const issuerInfo = allCadastros.find(c => 
-                  c.nome.trim().toUpperCase() === profile?.empresa?.trim().toUpperCase() ||
-                  c.classe === "empresa" ||
-                  c.nome.toUpperCase().includes("AUTOMOTRIZ")
-                );
-
-                const uniqueNFs = Array.from(new Set(supplierProducts.map(p => p.laudoNfGarantia).filter(Boolean)));
-                const complementaryInfoLabels = uniqueNFs.length > 0 
-                  ? `REFERENTE ÀS NF-E: ${uniqueNFs.join(", ")}.` 
-                  : "";
-                
-                const productsWithOverrides = supplierProducts.map(p => {
-                  const key = `${p.idLaudo}-${p.originalIdx}`;
-                  return {
-                    ...p,
-                    cst: productOverrides[key]?.cst || "",
-                    cfop: productOverrides[key]?.cfop || ""
-                  };
-                });
-
-                const handleProductChange = (index: number, field: string, value: string) => {
-                  const product = supplierProducts[index];
-                  const key = `${product.idLaudo}-${product.originalIdx}`;
-                  setProductOverrides(prev => ({
-                    ...prev,
-                    [key]: {
-                      ...prev[key],
-                      [field]: value
-                    }
-                  }));
-                };
-                
-                return (
-                  <DanfeMirror 
-                    issuer={issuerInfo}
-                    recipient={supplierInfo} 
-                    carrier={carrierInfo} 
-                    products={productsWithOverrides}
-                    responsible={conferenceStartedBy || profile?.nome || ""}
-                    complementaryInfo={complementaryInfoLabels}
-                    naturezaOperacao={naturezaOperacao}
-                    onNaturezaChange={setNaturezaOperacao}
-                    onProductChange={handleProductChange}
-                  />
-                );
-              })()}
+              {mirrorProps && (
+                <DanfeMirror {...mirrorProps} />
+              )}
             </div>
 
             <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3 no-print">
@@ -814,6 +916,11 @@ export function TratamentoFornecedor() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {viewMode === "finalized" && mirrorProps && (
+        <div className="print-only-danfe hidden">
+          <DanfeMirror {...mirrorProps} />
         </div>
       )}
     </div>
