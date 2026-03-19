@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { useAuth } from "../hooks/useAuth";
+import { useLaudos } from "../contexts/LaudosContext";
 import { 
   UserPlus, 
   Users, 
@@ -34,14 +35,15 @@ interface Profile {
 export function Configuracoes() {
   const { role, user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<"users" | "signatures" | "records">("users");
+  const { laudos, cadastros, fetchCadastros } = useLaudos();
   const [profiles, setProfiles] = useState<(Profile & { role: string })[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Master Records state
-  const [records, setRecords] = useState<any[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [recordFilter, setRecordFilter] = useState<"cliente" | "fornecedor" | "transportadora">("cliente");
   const [recordSearch, setRecordSearch] = useState("");
+  const [isFetchingCnpj, setIsFetchingCnpj] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
   const [newRecord, setNewRecord] = useState({
@@ -77,7 +79,7 @@ export function Configuracoes() {
   useEffect(() => {
     if (role === 'admin') {
       fetchUsers();
-      fetchRecords();
+      fetchCadastros(); // Use fetchCadastros from context
     }
   }, [role]);
 
@@ -110,20 +112,69 @@ export function Configuracoes() {
     }
   };
 
-  const fetchRecords = async () => {
-    setRecordsLoading(true);
+  // fetchRecords is now handled by LaudosContext as fetchCadastros
+
+  const handleSearchCnpj = async () => {
+    const cnpjClean = newRecord.cnpj.replace(/\D/g, "");
+    if (cnpjClean.length !== 14) {
+      toast.error("CNPJ inválido. Digite os 14 dígitos.");
+      return;
+    }
+
+    setIsFetchingCnpj(true);
     try {
-      const { data, error } = await (supabase as any)
-        .from("cadastros")
-        .select("*")
-        .order("nome");
+      // Priority: use the API requested by user (ReceitaWS)
+      // Note: Free tier has 3 requests per minute limit.
+      // Free tier requires JSONP in browser to avoid CORS.
       
-      if (error) throw error;
-      setRecords(data || []);
+      const callbackName = `receitaws_callback_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const data = await new Promise<any>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          delete (window as any)[callbackName];
+          reject(new Error("Tempo limite de busca excedido."));
+        }, 8000);
+
+        (window as any)[callbackName] = (response: any) => {
+          clearTimeout(timeout);
+          delete (window as any)[callbackName];
+          resolve(response);
+        };
+
+        const script = document.createElement("script");
+        script.src = `https://receitaws.com.br/v1/cnpj/${cnpjClean}?callback=${callbackName}`;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          delete (window as any)[callbackName];
+          reject(new Error("Erro ao conectar com a API ReceitaWS."));
+        };
+        document.body.appendChild(script);
+        setTimeout(() => document.body.removeChild(script), 500); // Cleanup script tag
+      });
+
+      if (data.status === "ERROR") {
+        throw new Error(data.message || "CNPJ não encontrado.");
+      }
+      
+      setNewRecord(prev => ({
+        ...prev,
+        nome: data.nome || prev.nome,
+        endereco: data.logradouro || prev.endereco,
+        numero: data.numero || prev.numero,
+        bairro: data.bairro || prev.bairro,
+        cep: data.cep?.replace(/\D/g, "") || prev.cep,
+        uf: data.uf || prev.uf,
+        email: data.email || prev.email,
+        fone: data.telefone || prev.fone,
+        estado: data.municipio || prev.estado
+      }));
+
+      toast.success("Dados preenchidos com sucesso via ReceitaWS!");
     } catch (error: any) {
-      console.error("Error fetching records:", error);
+      toast.error("Erro ao buscar CNPJ: " + error.message);
+      console.error("CNPJ Fetch Error:", error);
     } finally {
-      setRecordsLoading(false);
+      setIsFetchingCnpj(false);
     }
   };
 
@@ -151,7 +202,7 @@ export function Configuracoes() {
         cnpj: "", nome: "", classe: recordFilter, inscricao_estadual: "",
         email: "", fone: "", endereco: "", numero: "", bairro: "", cep: "", uf: "", estado: ""
       });
-      fetchRecords();
+      fetchCadastros(); // Refresh cadastros from context
     } catch (error: any) {
       toast.error("Erro ao salvar: " + error.message);
     } finally {
@@ -169,7 +220,7 @@ export function Configuracoes() {
         .eq("cnpj", cnpj);
       if (error) throw error;
       toast.success("Registro excluído.");
-      fetchRecords();
+      fetchCadastros(); // Refresh cadastros from context
     } catch (error: any) {
       toast.error("Erro ao excluir: " + error.message);
     }
@@ -269,7 +320,7 @@ export function Configuracoes() {
     }
   };
 
-  const filteredRecords = records.filter(r => 
+  const filteredRecords = (cadastros || []).filter(r => 
     r.classe === recordFilter &&
     r.nome?.toLowerCase().includes(recordSearch.toLowerCase())
   );
@@ -580,7 +631,7 @@ export function Configuracoes() {
                             <button
                               onClick={() => {
                                 setEditingRecord(r);
-                                setNewRecord(r);
+                                setNewRecord(r as any);
                                 setShowRecordModal(true);
                               }}
                               className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
@@ -651,16 +702,33 @@ export function Configuracoes() {
                     placeholder="Nome da empresa ou pessoa..."
                   />
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-bold text-gray-700 mb-2">CNPJ / CPF</label>
-                  <input
-                    type="text" required
-                    disabled={!!editingRecord}
-                    value={newRecord.cnpj}
-                    placeholder="00.000.000/0000-00"
-                    onChange={(e) => setNewRecord({...newRecord, cnpj: e.target.value})}
-                    className="w-full px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all disabled:bg-gray-100 font-mono"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text" required
+                      disabled={!!editingRecord}
+                      value={newRecord.cnpj}
+                      placeholder="00.000.000/0000-00"
+                      onChange={(e) => setNewRecord({...newRecord, cnpj: e.target.value})}
+                      className="flex-1 px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all disabled:bg-gray-100 font-mono"
+                    />
+                    {!editingRecord && (
+                      <button
+                        type="button"
+                        onClick={handleSearchCnpj}
+                        disabled={isFetchingCnpj}
+                        className="px-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all flex items-center justify-center shadow-sm disabled:opacity-50"
+                        title="Buscar dados pelo CNPJ"
+                      >
+                        {isFetchingCnpj ? (
+                          <Loader2 size={20} className="animate-spin" />
+                        ) : (
+                          <Search size={20} />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Inscrição Estadual</label>
@@ -672,7 +740,7 @@ export function Configuracoes() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">E-mail de Contato</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Endereço Eletrônico</label>
                   <input
                     type="email"
                     value={newRecord.email}

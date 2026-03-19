@@ -17,18 +17,37 @@ export interface Laudo {
     [key: string]: any;
 }
 
+export interface Cadastro {
+    cnpj: string;
+    nome: string;
+    classe: 'cliente' | 'fornecedor' | 'transportadora';
+    inscricao_estadual?: string;
+    email?: string;
+    fone?: string;
+    endereco?: string;
+    numero?: string;
+    bairro?: string;
+    cep?: string;
+    uf?: string;
+    estado?: string;
+    [key: string]: any;
+}
+
 interface LaudosContextData {
     laudos: Laudo[];
+    cadastros: Cadastro[];
     loading: boolean;
     adicionarLaudo: (laudo: Omit<Laudo, 'id' | 'statusLaudo'> & { id?: string, statusLaudo?: StatusLaudo }) => Promise<string | null>;
     atualizarLaudo: (id: string, dados: Partial<Laudo>) => Promise<void>;
     removerLaudo: (id: string) => Promise<void>;
+    fetchCadastros: () => Promise<void>;
 }
 
 const LaudosContext = createContext<LaudosContextData | undefined>(undefined);
 
 export function LaudosProvider({ children }: { children: ReactNode }) {
     const [laudos, setLaudos] = useState<Laudo[]>([]);
+    const [cadastros, setCadastros] = useState<Cadastro[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchLaudos = async () => {
@@ -63,8 +82,22 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const fetchCadastros = async () => {
+        try {
+            const { data, error } = await (supabase as any)
+                .from('cadastros')
+                .select('*')
+                .order('nome');
+            if (error) throw error;
+            setCadastros(data || []);
+        } catch (error) {
+            console.error('Erro ao buscar cadastros:', error);
+        }
+    };
+
     useEffect(() => {
         fetchLaudos();
+        fetchCadastros();
     }, []);
 
     const adicionarLaudo = async (laudoData: Omit<Laudo, 'id' | 'statusLaudo'> & { id?: string, statusLaudo?: StatusLaudo }) => {
@@ -163,7 +196,7 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <LaudosContext.Provider value={{ laudos, loading, adicionarLaudo, atualizarLaudo, removerLaudo }}>
+        <LaudosContext.Provider value={{ laudos, cadastros, loading, adicionarLaudo, atualizarLaudo, removerLaudo, fetchCadastros }}>
             {children}
         </LaudosContext.Provider>
     );

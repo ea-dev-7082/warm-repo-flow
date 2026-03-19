@@ -1,14 +1,20 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, Truck, Building2, User, ArrowLeft, FileText, ClipboardList, Loader2, Check, PlayCircle, Lock, Save, History, Calendar, CheckSquare, Eye, Printer } from "lucide-react";
-import { FABRICANTES } from "../constants/suppliers";
 import { useLaudos } from "../contexts/LaudosContext";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+// FABRICANTES is now dynamic from context
 import { toast } from "sonner";
 import { DanfeMirror } from "./DanfeMirror";
 
 export function TratamentoFornecedor() {
-  const { laudos, loading, atualizarLaudo } = useLaudos();
+  const { laudos, loading, adicionarLaudo, atualizarLaudo, cadastros } = useLaudos();
+  const manufacturers = (cadastros || [])
+    .filter(c => c.classe === "fornecedor")
+    .map(c => c.nome);
+
+  const allCadastros = cadastros || [];
+
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<"buscar" | "laudo" | "historico">("buscar");
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,7 +26,6 @@ export function TratamentoFornecedor() {
   const [localChecks, setLocalChecks] = useState<Record<string, boolean>>({});
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showMirrorModal, setShowMirrorModal] = useState(false);
-  const [allCadastros, setAllCadastros] = useState<any[]>([]);
   const [selectedCarrierId, setSelectedCarrierId] = useState<string>("");
   const [cadastrosLoading, setCadastrosLoading] = useState(false);
   const [naturezaOperacao, setNaturezaOperacao] = useState("DEVOLUÇÃO DE MERCADORIA OU DEMONSTRAÇÃO");
@@ -171,14 +176,13 @@ export function TratamentoFornecedor() {
     const supplierInfo = allCadastros.find(c =>
       (c.nome.trim().toUpperCase() === selectedSupplier?.trim().toUpperCase() ||
         c.nome.trim().toUpperCase().includes(selectedSupplier?.trim().toUpperCase() || "")) &&
-      (c.classe === "fornecedor" || c.classe === "Fornecedor")
+      (c.classe === "fornecedor")
     );
 
     const carrierInfo = allCadastros.find(c => c.cnpj === selectedCarrierId);
 
     const issuerInfo = allCadastros.find(c => 
       c.nome.trim().toUpperCase() === profile?.empresa?.trim().toUpperCase() ||
-      c.classe === "empresa" ||
       c.nome.toUpperCase().includes("AUTOMOTRIZ")
     );
 
@@ -217,7 +221,7 @@ export function TratamentoFornecedor() {
     };
   }, [selectedSupplier, viewMode, allCadastros, selectedCarrierId, profile, supplierProducts, productOverrides, naturezaOperacao, conferenceStartedBy]);
 
-  const filteredSuppliers = FABRICANTES.filter(s =>
+  const filteredSuppliers = manufacturers.filter(s =>
     s.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -230,24 +234,7 @@ export function TratamentoFornecedor() {
     setLocalChecks({});
   };
 
-  useEffect(() => {
-    fetchCadastros();
-  }, []);
-
-  const fetchCadastros = async () => {
-    setCadastrosLoading(true);
-    try {
-      const { data, error } = await (supabase as any)
-        .from("cadastros")
-        .select("*");
-      if (error) throw error;
-      setAllCadastros(data || []);
-    } catch (error: any) {
-      console.error("Error fetching cadastros:", error);
-    } finally {
-      setCadastrosLoading(false);
-    }
-  };
+  // fetchCadastros is now handled by LaudosContext
 
   const handlePrint = () => {
     window.print();
@@ -730,7 +717,7 @@ export function TratamentoFornecedor() {
                 const supplierInfo = allCadastros.find(c =>
                   (c.nome.trim().toUpperCase() === selectedSupplier?.trim().toUpperCase() ||
                     c.nome.trim().toUpperCase().includes(selectedSupplier?.trim().toUpperCase() || "")) &&
-                  (c.classe === "fornecedor" || c.classe === "Fornecedor")
+                  c.classe === "fornecedor"
                 );
                 if (!supplierInfo) return null;
                 return (

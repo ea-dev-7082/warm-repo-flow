@@ -2,6 +2,9 @@ import { FileUpload } from "./FileUpload";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { XMLParser } from "fast-xml-parser";
+import { useLaudos } from "../contexts/LaudosContext";
+import { AlertCircle, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
 interface XMLData {
   cliente: string;
@@ -19,7 +22,10 @@ interface XMLData {
 
 export function ImportXML() {
   const [xmlData, setXmlData] = useState<XMLData | null>(null);
+  const [duplicateId, setDuplicateId] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const navigate = useNavigate();
+  const { laudos } = useLaudos();
 
   const handleFileSelect = (file: File) => {
     const reader = new FileReader();
@@ -81,9 +87,24 @@ export function ImportXML() {
           }
         });
 
+        const formattedGarantia = nfGarantia.toString();
+
+        // Check for duplicates
+        const existingLaudo = laudos.find(l => 
+          l.nfGarantia === formattedGarantia && 
+          l.cliente.trim().toUpperCase() === cliente.trim().toUpperCase()
+        );
+
+        if (existingLaudo) {
+          setDuplicateId(existingLaudo.id);
+          toast.warning("Atenção: Este XML (NF " + formattedGarantia + ") já foi importado anteriormente!");
+        } else {
+          setDuplicateId(null);
+        }
+
         setXmlData({
           cliente,
-          nfGarantia: nfGarantia.toString(),
+          nfGarantia: formattedGarantia,
           nfInterna: nfInternaFormatada,
           produto: produtosDesc.length > 1 ? "Múltiplos produtos" : (produtosDesc[0] || "Não identificado"),
           quantidade: totalQuantidade.toString(),
@@ -98,6 +119,10 @@ export function ImportXML() {
   };
 
   const handleCreateLaudo = () => {
+    if (duplicateId && !showConfirmModal) {
+      setShowConfirmModal(true);
+      return;
+    }
     navigate("/nova-analise", { state: xmlData });
   };
 
@@ -124,12 +149,36 @@ export function ImportXML() {
               Dados importados do XML
             </h3>
             <button
-              onClick={() => setXmlData(null)}
+              onClick={() => {
+                setXmlData(null);
+                setDuplicateId(null);
+              }}
               className="text-sm text-blue-600 hover:text-blue-700"
             >
               Importar outro arquivo
             </button>
           </div>
+
+          {duplicateId && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <AlertCircle className="text-red-600 mt-0.5" size={20} />
+              <div className="flex-1">
+                <h4 className="text-red-900 font-bold text-sm">Atenção: XML Duplicado</h4>
+                <p className="text-red-700 text-xs mt-1">
+                  Este arquivo XML (NF {xmlData.nfGarantia}) já foi lido e processado anteriormente no sistema para o cliente {xmlData.cliente}.
+                </p>
+                <div className="mt-3">
+                  <button 
+                    onClick={() => navigate(`/laudo/${duplicateId}`)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-red-900 hover:underline"
+                  >
+                    <ExternalLink size={14} />
+                    Ver laudo existente
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -230,6 +279,40 @@ export function ImportXML() {
             >
               Criar Laudo
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center border-b border-gray-100">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <AlertCircle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Nota Fiscal já Importada</h3>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                O sistema detectou que a <span className="font-bold text-gray-900">NF {xmlData?.nfGarantia}</span> do cliente <span className="font-bold text-gray-900">{xmlData?.cliente}</span> já possui um laudo registrado.
+              </p>
+              <p className="text-gray-700 mt-4 font-semibold">
+                Deseja criar uma nova análise mesmo assim?
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 flex flex-col gap-2">
+              <button
+                onClick={() => navigate("/nova-analise", { state: xmlData })}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]"
+              >
+                Sim, Continuar Importação
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-all active:scale-[0.98]"
+              >
+                Não, Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

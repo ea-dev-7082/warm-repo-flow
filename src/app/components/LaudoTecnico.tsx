@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Download, FileDown, Plus, Printer, Save } from "lucide-react";
+import { AlertCircle, Download, FileDown, Plus, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
 import { MultiSelect } from "./ui/MultiSelect";
@@ -10,7 +10,7 @@ import { useLaudos } from "../contexts/LaudosContext";
 import { useAuth } from "../hooks/useAuth";
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
-import { FABRICANTES } from "../constants/suppliers";
+// FABRICANTES is now dynamic from context
 
 const ITEM_OPTIONS = [
   "Coxim", "Batente", "Coifa", "Rolamento",
@@ -37,8 +37,12 @@ export function LaudoTecnico() {
   const location = useLocation();
   const navigate = useNavigate();
   const importedData = location.state;
-  const { adicionarLaudo, atualizarLaudo } = useLaudos();
-  const { profile } = useAuth();
+  const { laudos, adicionarLaudo, atualizarLaudo, cadastros, loading: laudosLoading } = useLaudos();
+  const manufacturers = (cadastros || [])
+    .filter(c => c.classe === "fornecedor")
+    .map(c => c.nome);
+
+  const { role, profile } = useAuth();
 
   const [reportSettings, setReportSettings] = useState({
     company_name: "Automotriz Indústria e Comércio de Peças Automotivas",
@@ -83,6 +87,9 @@ export function LaudoTecnico() {
     dataKit: "",
     itemAvaliado: ""
   });
+
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [pendingXmlData, setPendingXmlData] = useState<any>(null);
 
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
   const [componentOptions, setComponentOptions] = useState<Record<string, string[]>>({});
@@ -217,7 +224,26 @@ export function LaudoTecnico() {
         }
 
         const cliente = infNFe.emit?.xNome || formData.cliente;
-        const nfGarantia = infNFe.ide?.nNF || formData.nfGarantia;
+        const nfGarantiaValue = infNFe.ide?.nNF || formData.nfGarantia;
+        const formattedGarantia = nfGarantiaValue.toString();
+
+        // Duplicate check
+        const existingLaudo = laudos.find(l => 
+          l.nfGarantia === formattedGarantia && 
+          l.cliente.trim().toUpperCase() === cliente.trim().toUpperCase()
+        );
+
+        if (existingLaudo) {
+          toast.warning(`Atenção: A NF ${formattedGarantia} já foi importada anteriormente para o cliente ${cliente}!`, {
+            duration: 6000,
+            action: {
+              label: "Ver Laudo",
+              onClick: () => navigate(`/laudo/${existingLaudo.id}`)
+            }
+          });
+        }
+
+        const nfGarantia = nfGarantiaValue;
 
         let dets = infNFe.det;
         if (!Array.isArray(dets)) {
@@ -256,20 +282,21 @@ export function LaudoTecnico() {
 
         const nfInternaFormatada = nfInternas.length > 0 ? nfInternas.join(";") + ";" : formData.nfInterna;
 
-        setFormData({
-          ...formData,
+        const xmlDataToApply = {
           cliente,
-          nfGarantia: nfGarantia.toString(),
+          nfGarantia: nfGarantiaValue.toString(),
           nfInterna: nfInternaFormatada,
-          produtos: [...formData.produtos, ...produtosMapeados]
-        });
+          produtos: produtosMapeados
+        };
 
-        toast.success("XML importado com sucesso!");
+        if (existingLaudo) {
+          setPendingXmlData(xmlDataToApply);
+          setShowDuplicateConfirm(true);
+          return;
+        }
 
-        // Buscar componentes para todos os produtos importados
-        produtosMapeados.forEach(p => {
-          if (p.codigo) fetchComponentsForProduct(p.codigo);
-        });
+        // If not duplicate, apply immediately
+        applyXmlData(xmlDataToApply);
       } catch (error) {
         console.error(error);
         toast.error("Erro ao processar XML.");
@@ -277,6 +304,23 @@ export function LaudoTecnico() {
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  const applyXmlData = (data: any) => {
+    setFormData({
+      ...formData,
+      cliente: data.cliente,
+      nfGarantia: data.nfGarantia,
+      nfInterna: data.nfInterna,
+      produtos: [...formData.produtos, ...data.produtos]
+    });
+
+    toast.success("XML importado com sucesso!");
+
+    // Buscar componentes para todos os produtos importados
+    data.produtos.forEach((p: any) => {
+      if (p.codigo) fetchComponentsForProduct(p.codigo);
+    });
   };
 
   const handleAddManualItem = () => {
@@ -840,7 +884,7 @@ export function LaudoTecnico() {
                               if (itensSelecionados.length === 0) {
                                 return (
                                   <SearchableSelect
-                                    options={[...FABRICANTES, "Outros"]}
+                                    options={[...manufacturers, "Outros"]}
                                     value={(p.fabricante && !p.fabricante.startsWith("{")) ? p.fabricante : ""}
                                     disabled={!p.recebido}
                                     placeholder="Fabricante..."
@@ -870,7 +914,7 @@ export function LaudoTecnico() {
                                         <span className="text-[9px] font-bold text-gray-500 truncate" title={itemSelected}>{itemSelected.split(" ")[0]}</span>
                                       )}
                                       <SearchableSelect
-                                        options={[...FABRICANTES, "Outros"]}
+                                      options={[...manufacturers, "Outros"]}
                                         value={parsedFabricante[itemSelected] || ""}
                                         disabled={!p.recebido}
                                         placeholder="Fabricante..."
@@ -1238,6 +1282,46 @@ export function LaudoTecnico() {
           </>
         )}
       </div>
+      {/* Confirmation Modal for Duplicate XML */}
+      {showDuplicateConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center border-b border-gray-100">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Nota Fiscal já Importada</h3>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                Esta NF já possui um laudo registrado para este cliente.
+              </p>
+              <p className="text-gray-700 mt-4 font-semibold">
+                Deseja importar os dados mesmo assim?
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  if (pendingXmlData) applyXmlData(pendingXmlData);
+                  setShowDuplicateConfirm(false);
+                  setPendingXmlData(null);
+                }}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]"
+              >
+                Sim, Importar
+              </button>
+              <button
+                onClick={() => {
+                  setShowDuplicateConfirm(false);
+                  setPendingXmlData(null);
+                }}
+                className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-all active:scale-[0.98]"
+              >
+                Não, Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
