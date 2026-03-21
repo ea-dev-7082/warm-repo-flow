@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
+import { FloatingSupportChat } from "./FloatingSupportChat";
 
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -142,6 +143,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <FloatingSupportChat />
     </div>
   );
 }
