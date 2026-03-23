@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
+import { useAuth } from "@/app/hooks/useAuth";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-const WEBHOOK_URL = "https://n8n.webhook.com/ai-support"; // Placeholder - replace with actual webhook
+const WEBHOOK_URL = "https://n8n.kaffspiel.cloud/webhook/eu-sou-garantista"; // Placeholder - replace with actual webhook
 
 export function FloatingSupportChat() {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Olá! Como posso ajudar você com a gestão de garantias hoje?" },
@@ -39,13 +41,24 @@ export function FloatingSupportChat() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ 
+          message: userMessage,
+          chatHistory: messages,
+          userId: user?.id
+        }),
       });
 
       if (!response.ok) throw new Error("Falha ao conectar com o agente de suporte.");
 
       const data = await response.json();
-      const assistantMessage = data.output || data.message || "Desculpe, tive um problema ao processar sua solicitação.";
+      
+      // O n8n geralmente retorna um array ou objeto. Pegamos o campo de saída mais comum.
+      const responseData = Array.isArray(data) ? data[0] : data;
+      const assistantMessage = 
+        responseData.output || 
+        responseData.message || 
+        responseData.response ||
+        (typeof responseData === "string" ? responseData : "Desculpe, não consegui processar sua solicitação no momento.");
 
       setMessages((prev) => [...prev, { role: "assistant", content: assistantMessage }]);
     } catch (error) {
@@ -94,11 +107,10 @@ export function FloatingSupportChat() {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] p-3 rounded-2xl text-sm ${
-                    msg.role === "user"
+                  className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === "user"
                       ? "bg-blue-600 text-white rounded-tr-none"
                       : "bg-white text-gray-800 border border-gray-200 rounded-tl-none shadow-sm"
-                  }`}
+                    }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                 </div>
@@ -143,9 +155,8 @@ export function FloatingSupportChat() {
       {/* FAB */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 ${
-          isOpen ? "bg-gray-100 text-gray-600 rotate-90" : "bg-blue-600 text-white"
-        }`}
+        className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 ${isOpen ? "bg-gray-100 text-gray-600 rotate-90" : "bg-blue-600 text-white"
+          }`}
       >
         {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
       </button>
