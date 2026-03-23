@@ -1,4 +1,5 @@
 import { Building2, Truck, ClipboardList, Edit2 } from "lucide-react";
+import { useRef } from "react";
 
 interface DanfeMirrorProps {
   issuer: any;
@@ -23,11 +24,29 @@ export function DanfeMirror({
   onNaturezaChange,
   onProductChange
 }: DanfeMirrorProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const currentDate = new Date().toLocaleDateString('pt-BR');
   const currentTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+  const handleEnterNavigation = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const target = e.target as HTMLElement;
+      if (!containerRef.current) return;
+      
+      const inputs = Array.from(
+        containerRef.current.querySelectorAll("input:not([disabled])")
+      ) as HTMLElement[];
+
+      const currentIndex = inputs.indexOf(target);
+      if (currentIndex > -1 && currentIndex < inputs.length - 1) {
+        inputs[currentIndex + 1].focus();
+      }
+    }
+  };
+
   return (
-    <div className="danfe-container bg-white text-[10px] font-sans leading-tight text-black p-4 w-full">
+    <div ref={containerRef} className="danfe-container bg-white text-[10px] font-sans leading-tight text-black p-4 w-full">
       <style>{`
         .danfe-box {
           border: 1px solid black;
@@ -223,6 +242,7 @@ export function DanfeMirror({
             type="text"
             value={naturezaOperacao}
             onChange={(e) => onNaturezaChange?.(e.target.value)}
+            onKeyDown={handleEnterNavigation}
             className="danfe-value text-xs w-full bg-transparent border-none outline-none p-0 h-auto focus:ring-0 no-print"
             placeholder="Clique para editar..."
           />
@@ -415,6 +435,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.ncm || ""}
                       onChange={(e) => onProductChange?.(idx, 'ncm', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.ncm || ""}</span>
@@ -426,6 +447,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.cst || ""}
                       onChange={(e) => onProductChange?.(idx, 'cst', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.cst || ""}</span>
@@ -437,6 +459,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.cfop || ""}
                       onChange={(e) => onProductChange?.(idx, 'cfop', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.cfop || ""}</span>
@@ -448,6 +471,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.unidade ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'unidade', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-center focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.unidade ?? ""}</span>
@@ -459,6 +483,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.quantidade ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'quantidade', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.quantidade ?? ""}</span>
@@ -470,6 +495,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.vUnit ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'vUnit', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.vUnit ?? ""}</span>
@@ -481,6 +507,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.vProd ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'vProd', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.vProd ?? ""}</span>
@@ -492,6 +519,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.vBCICMS ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'vBCICMS', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.vBCICMS ?? ""}</span>
@@ -503,6 +531,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.vICMS ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'vICMS', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.vICMS ?? ""}</span>
@@ -514,6 +543,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.vIPI ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'vIPI', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.vIPI ?? ""}</span>
@@ -525,6 +555,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.pICMS ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'pICMS', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.pICMS ?? ""}</span>
@@ -536,6 +567,7 @@ export function DanfeMirror({
                       type="text"
                       value={p.pIPI ?? ""}
                       onChange={(e) => onProductChange?.(idx, 'pIPI', e.target.value)}
+                      onKeyDown={handleEnterNavigation}
                       className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
                     />
                     <span className="print-only font-bold">{p.pIPI ?? ""}</span>

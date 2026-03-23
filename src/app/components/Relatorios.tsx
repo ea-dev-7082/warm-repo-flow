@@ -49,8 +49,11 @@ export function Relatorios() {
         // 1. Produtos com mais ocorrências
         const productCounts: Record<string, number> = {};
         laudos.forEach(l => {
-          const desc = l.produto_descricao || "Sem descrição";
-          productCounts[desc] = (productCounts[desc] || 0) + 1;
+          const produtos = (l.xml_dados as any)?.produtos || [];
+          produtos.forEach((p: any) => {
+            const desc = p.descricao || "Sem descrição";
+            productCounts[desc] = (productCounts[desc] || 0) + 1;
+          });
         });
         const topProducts = Object.entries(productCounts)
           .map(([produto, quantidade]) => ({ produto, quantidade }))
@@ -80,14 +83,34 @@ export function Relatorios() {
         laudos.forEach(l => {
           const produtos = (l.xml_dados as any)?.produtos || [];
           produtos.forEach((p: any) => {
-            const fab = p.fabricante || "Outros";
-            manufacturerCounts[fab] = (manufacturerCounts[fab] || 0) + 1;
+            let fabs: string[] = [];
+            if (p.fabricante) {
+              if (p.fabricante.startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(p.fabricante);
+                  fabs = Object.values(parsed).filter(v => typeof v === 'string') as string[];
+                } catch (e) {
+                  fabs = [p.fabricante];
+                }
+              } else {
+                fabs = [p.fabricante];
+              }
+            } else {
+              fabs = ["Outros"];
+            }
+
+            const uniqueFabs = Array.from(new Set(fabs.map(f => f.trim())));
+            uniqueFabs.forEach(fab => {
+              if (fab) {
+                manufacturerCounts[fab] = (manufacturerCounts[fab] || 0) + 1;
+              }
+            });
           });
         });
         const topManufacturers = Object.entries(manufacturerCounts)
           .map(([fornecedor, quantidade]) => ({ fornecedor, quantidade }))
           .sort((a, b) => b.quantidade - a.quantidade)
-          .slice(0, 5);
+          .slice(0, 10); // Aumentado para 10 para melhor visibilidade
         setFornecedorData(topManufacturers);
 
         // 4. Garantias por período (últimos 7 meses)
@@ -115,7 +138,9 @@ export function Relatorios() {
 
         // 5. Estatísticas Gerais
         const total = laudos.length;
-        const taxa = total > 0 ? (procedente / total) * 100 : 0;
+        // Taxa de procedência baseada em produtos recebidos e analisados
+        let totalAnalisados = procedente + naoProcedente;
+        const taxa = totalAnalisados > 0 ? (procedente / totalAnalisados) * 100 : 0;
         setStats(prev => ({
           ...prev,
           total,

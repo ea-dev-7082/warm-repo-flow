@@ -29,7 +29,7 @@ export function TratamentoFornecedor() {
   const [selectedCarrierId, setSelectedCarrierId] = useState<string>("");
   const [cadastrosLoading, setCadastrosLoading] = useState(false);
   const [naturezaOperacao, setNaturezaOperacao] = useState("DEVOLUÇÃO DE MERCADORIA OU DEMONSTRAÇÃO");
-  const [productOverrides, setProductOverrides] = useState<Record<string, { cst?: string, cfop?: string }>>({});
+  const [productOverrides, setProductOverrides] = useState<Record<string, Record<string, string>>>({});
   const [selectedConferenceDate, setSelectedConferenceDate] = useState<string | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState("");
   const [historyDateFilter, setHistoryDateFilter] = useState("");
@@ -191,8 +191,7 @@ export function TratamentoFornecedor() {
       const overrides = productOverrides[key] || {};
       return {
         ...p,
-        cst: overrides.cst ?? p.cst,
-        cfop: overrides.cfop ?? p.cfop
+        ...overrides
       };
     });
 
