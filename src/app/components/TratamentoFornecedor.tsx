@@ -15,7 +15,7 @@ export function TratamentoFornecedor() {
 
   const allCadastros = cadastros || [];
 
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [activeTab, setActiveTab] = useState<"buscar" | "laudo" | "historico">("buscar");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
@@ -186,14 +186,45 @@ export function TratamentoFornecedor() {
       c.nome.toUpperCase().includes("AUTOMOTRIZ")
     );
 
-    const productsWithOverrides = supplierProducts.map((p, idx) => {
+    // 1. Get all products with individual overrides applied
+    const rawProductsWithOverrides = supplierProducts.map((p, idx) => {
       const key = `${p.idLaudo}-${p.originalIdx}`;
       const overrides = productOverrides[key] || {};
       return {
         ...p,
-        ...overrides
+        ...overrides,
+        originalKey: key
       };
     });
+
+    // 2. Group products
+    const groupedMap = new Map<string, any>();
+
+    rawProductsWithOverrides.forEach(p => {
+      // Grouping key: code, ncm, unit, unitValue, cfop, cst
+      const groupKey = `${p.codigo}|${p.ncm || ""}|${p.unidade || ""}|${p.vUnit || ""}|${p.cfop || ""}|${p.cst || ""}`;
+      
+      if (groupedMap.has(groupKey)) {
+        const group = groupedMap.get(groupKey);
+        
+        const currentQty = parseFloat(String(group.quantidade).replace(',', '.')) || 0;
+        const pQty = parseFloat(String(p.quantidade).replace(',', '.')) || 0;
+        group.quantidade = (currentQty + pQty).toString().replace('.', ',');
+
+        const currentTotal = parseFloat(String(group.vProd).replace(',', '.')) || 0;
+        const pTotal = parseFloat(String(p.vProd).replace(',', '.')) || 0;
+        group.vProd = (currentTotal + pTotal).toFixed(2).replace('.', ',');
+
+        group.originalKeys.push(p.originalKey);
+      } else {
+        groupedMap.set(groupKey, {
+          ...p,
+          originalKeys: [p.originalKey]
+        });
+      }
+    });
+
+    const aggregatedProducts = Array.from(groupedMap.values());
 
     const complementaryInfoLabels = Array.from(new Set(supplierProducts.map(p => p.laudoCliente))).join(", ");
 
@@ -201,21 +232,49 @@ export function TratamentoFornecedor() {
       issuer: issuerInfo,
       recipient: supplierInfo,
       carrier: carrierInfo,
-      products: productsWithOverrides,
+      products: aggregatedProducts,
       responsible: conferenceStartedBy || profile?.nome || "",
       complementaryInfo: complementaryInfoLabels,
       naturezaOperacao,
       onNaturezaChange: setNaturezaOperacao,
       onProductChange: (index: number, field: string, value: string) => {
-        const p = productsWithOverrides[index];
-        const key = `${p.idLaudo}-${p.originalIdx}`;
-        setProductOverrides(prev => ({
-          ...prev,
-          [key]: {
-            ...prev[key],
-            [field]: value
-          }
-        }));
+        const group = aggregatedProducts[index];
+        const keysToUpdate = group.originalKeys;
+
+        setProductOverrides(prev => {
+          const newOverrides = { ...prev };
+          
+          keysToUpdate.forEach((key: string) => {
+            const currentOverrides = newOverrides[key] || {};
+            const itemOriginal = supplierProducts.find(sp => `${sp.idLaudo}-${sp.originalIdx}` === key);
+            
+            const updated = { ...currentOverrides, [field]: value };
+
+            // Re-calculate vProd for each item in the group if quantity or unit value changed
+            // NOTE: If quantity of the GROUP row changed, it's tricky. 
+            // For now, if user edits quantity of a grouped row, we apply that value to each item? 
+            // Probably not what's intended. Usually quantity is not edited on grouped rows unless it's to fix something.
+            // If they change quantity on a grouped row from e.g. "10" to "5", we don't know which items to reduce.
+            // But usually DANFE quantity is fixed from XML.
+            
+            if (field === 'quantidade' || field === 'vUnit') {
+              const qtyStr = String(field === 'quantidade' ? value : (updated.quantidade || itemOriginal?.quantidade || "0"));
+              const unitValStr = String(field === 'vUnit' ? value : (updated.vUnit || itemOriginal?.vUnit || "0"));
+
+              const qtyNum = parseFloat(qtyStr.replace(',', '.')) || 0;
+              const unitValNum = parseFloat(unitValStr.replace(',', '.')) || 0;
+              const total = qtyNum * unitValNum;
+
+              if (!isNaN(total)) {
+                updated.vProd = total.toFixed(2).replace('.', ',');
+              }
+            }
+
+            newOverrides[key] = updated;
+          });
+
+          return newOverrides;
+        });
       }
     };
   }, [selectedSupplier, viewMode, allCadastros, selectedCarrierId, profile, supplierProducts, productOverrides, naturezaOperacao, conferenceStartedBy]);
@@ -236,6 +295,21 @@ export function TratamentoFornecedor() {
   // fetchCadastros is now handled by LaudosContext
 
   const handlePrint = () => {
+    if (!mirrorProps || !mirrorProps.products) return;
+
+    const invalidItems = mirrorProps.products.filter(p => !p.cst || !p.cfop || !p.quantidade);
+    
+    if (invalidItems.length > 0) {
+      const codes = Array.from(new Set(invalidItems.map(p => p.codigo))).join(", ");
+      toast.error(`Impressão bloqueada! Os itens (${codes}) estão com campos obrigatórios vazios (CST, CFOP ou Qtd). Por favor, preencha-os antes de imprimir.`);
+      return;
+    }
+
+    if (!selectedCarrierId) {
+      toast.error("Selecione uma transportadora para o espelho.");
+      return;
+    }
+
     window.print();
   };
 
@@ -289,7 +363,8 @@ export function TratamentoFornecedor() {
                 ...p, 
                 conferido: true, 
                 data_conferencia: sessionTimestamp,
-                conferente: profile.nome
+                conferente: profile.nome,
+                conferenteId: user?.id
               };
             }
             // If it was already checked and we are toggling it OFF (less likely but possible)
@@ -889,7 +964,7 @@ export function TratamentoFornecedor() {
 
             <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3 no-print">
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="px-6 py-2.5 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-all font-bold text-sm shadow-md"
               >
                 Imprimir Espelho

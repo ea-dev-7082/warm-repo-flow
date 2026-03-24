@@ -513,64 +513,29 @@ export function DanfeMirror({
                     <span className="print-only font-bold">{p.vProd ?? ""}</span>
                   </div>
                 </td>
-                <td className="border-r border-black px-1 py-0.5 text-right p-0">
-                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
-                    <input 
-                      type="text"
-                      value={p.vBCICMS ?? ""}
-                      onChange={(e) => onProductChange?.(idx, 'vBCICMS', e.target.value)}
-                      onKeyDown={handleEnterNavigation}
-                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
-                    />
-                    <span className="print-only font-bold">{p.vBCICMS ?? ""}</span>
+                 <td className="border-r border-black px-1 py-0.5 text-right p-0">
+                  <div className="min-h-[14px] flex items-center justify-end px-1 font-bold text-[7px]">
+                    {p.vBCICMS ?? ""}
                   </div>
                 </td>
                 <td className="border-r border-black px-1 py-0.5 text-right p-0">
-                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
-                    <input 
-                      type="text"
-                      value={p.vICMS ?? ""}
-                      onChange={(e) => onProductChange?.(idx, 'vICMS', e.target.value)}
-                      onKeyDown={handleEnterNavigation}
-                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
-                    />
-                    <span className="print-only font-bold">{p.vICMS ?? ""}</span>
+                  <div className="min-h-[14px] flex items-center justify-end px-1 font-bold text-[7px]">
+                    {p.vICMS ?? ""}
                   </div>
                 </td>
                 <td className="border-r border-black px-1 py-0.5 text-right p-0">
-                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
-                    <input 
-                      type="text"
-                      value={p.vIPI ?? ""}
-                      onChange={(e) => onProductChange?.(idx, 'vIPI', e.target.value)}
-                      onKeyDown={handleEnterNavigation}
-                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
-                    />
-                    <span className="print-only font-bold">{p.vIPI ?? ""}</span>
+                  <div className="min-h-[14px] flex items-center justify-end px-1 font-bold text-[7px]">
+                    {p.vIPI ?? ""}
                   </div>
                 </td>
                 <td className="border-r border-black px-1 py-0.5 text-right p-0">
-                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
-                    <input 
-                      type="text"
-                      value={p.pICMS ?? ""}
-                      onChange={(e) => onProductChange?.(idx, 'pICMS', e.target.value)}
-                      onKeyDown={handleEnterNavigation}
-                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
-                    />
-                    <span className="print-only font-bold">{p.pICMS ?? ""}</span>
+                  <div className="min-h-[14px] flex items-center justify-end px-1 font-bold text-[7px]">
+                    {p.pICMS ?? ""}
                   </div>
                 </td>
                 <td className="px-1 py-0.5 text-right p-0">
-                  <div className="relative group editable-field transition-colors min-h-[14px] flex items-center justify-center">
-                    <input 
-                      type="text"
-                      value={p.pIPI ?? ""}
-                      onChange={(e) => onProductChange?.(idx, 'pIPI', e.target.value)}
-                      onKeyDown={handleEnterNavigation}
-                      className="text-[7px] w-full bg-transparent border-none outline-none p-0 h-auto text-right focus:ring-0 no-print font-bold"
-                    />
-                    <span className="print-only font-bold">{p.pIPI ?? ""}</span>
+                  <div className="min-h-[14px] flex items-center justify-end px-1 font-bold text-[7px]">
+                    {p.pIPI ?? ""}
                   </div>
                 </td>
               </tr>

@@ -17,6 +17,10 @@ interface XMLData {
     descricao: string;
     quantidade: string;
     nfInterna: string;
+    ncm: string;
+    unidade: string;
+    vUnit: string;
+    vProd: string;
   }>;
 }
 
@@ -82,7 +86,11 @@ export function ImportXML() {
               codigo: det.prod?.cProd || "N/A",
               descricao: det.prod?.xProd || "N/A",
               quantidade: "1",
-              nfInterna: nfMatch ? nfMatch[1] : ""
+              nfInterna: nfMatch ? nfMatch[1] : "",
+              ncm: det.prod?.NCM || "",
+              unidade: det.prod?.uCom || "",
+              vUnit: det.prod?.vUnCom || "",
+              vProd: det.prod?.vUnCom || ""
             });
           }
         });
