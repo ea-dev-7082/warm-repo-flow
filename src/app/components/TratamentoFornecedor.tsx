@@ -33,6 +33,7 @@ export function TratamentoFornecedor() {
   const [selectedConferenceDate, setSelectedConferenceDate] = useState<string | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState("");
   const [historyDateFilter, setHistoryDateFilter] = useState("");
+  const [componentDescriptions, setComponentDescriptions] = useState<Record<string, string>>({});
 
   // Extract all products for the selected supplier from all laudos
   const supplierProducts = useMemo(() => {
@@ -42,25 +43,29 @@ export function TratamentoFornecedor() {
     laudos.forEach(laudo => {
       if (laudo.produtos && Array.isArray(laudo.produtos)) {
         laudo.produtos.forEach((p, idx) => {
-          let isMatch = false;
+          const itemsToProcess: { itemName?: string, manufacturer: string }[] = [];
 
           if (p.fabricante) {
             if (p.fabricante.startsWith('{')) {
               try {
                 const parsed = JSON.parse(p.fabricante);
-                isMatch = Object.values(parsed).some(val =>
-                  typeof val === 'string' && val.trim().toUpperCase() === selectedSupplier.trim().toUpperCase()
-                );
+                Object.entries(parsed).forEach(([name, fab]) => {
+                  if (typeof fab === 'string' && fab.trim().toUpperCase() === selectedSupplier.trim().toUpperCase()) {
+                    itemsToProcess.push({ itemName: name, manufacturer: fab });
+                  }
+                });
               } catch (e) {
                 console.error("Error parsing manufacturer JSON", e);
               }
             } else {
-              isMatch = p.fabricante.trim().toUpperCase() === selectedSupplier.trim().toUpperCase();
+              if (p.fabricante.trim().toUpperCase() === selectedSupplier.trim().toUpperCase()) {
+                itemsToProcess.push({ manufacturer: p.fabricante });
+              }
             }
           }
 
-          if (isMatch) {
-            const key = `${laudo.id}-${idx}`;
+          itemsToProcess.forEach(item => {
+            const key = item.itemName ? `${laudo.id}-${idx}-${item.itemName}` : `${laudo.id}-${idx}`;
             const currentConferido = isConferringLocally ? !!localChecks[key] : !!p.conferido;
 
             // Partitioning logic:
@@ -77,20 +82,56 @@ export function TratamentoFornecedor() {
             if (shouldInclude) {
               products.push({
                 ...p,
+                codigo: item.itemName || p.codigo, // Show item name as main code
+                kitCodigo: item.itemName ? p.codigo : undefined,
                 conferido: currentConferido,
                 laudoCliente: laudo.cliente,
                 laudoNfGarantia: laudo.nfGarantia,
                 laudoData: laudo.data,
                 idLaudo: laudo.id,
-                originalIdx: idx
+                originalIdx: idx,
+                itemName: item.itemName // Added for identification
               });
             }
-          }
+          });
         });
       }
     });
     return products;
   }, [laudos, selectedSupplier, isConferringLocally, localChecks, viewMode, selectedConferenceDate]);
+
+  useEffect(() => {
+    const fetchComponentDescriptions = async () => {
+      const uniqueComponentCodes = Array.from(new Set(
+        supplierProducts
+          .filter((p: any) => p.itemName)
+          .map((p: any) => p.itemName as string)
+      ));
+
+      if (uniqueComponentCodes.length === 0) return;
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('componentes_kit')
+          .select('componente_codigo, descricao, referencia')
+          .in('componente_codigo', uniqueComponentCodes);
+
+        if (error) throw error;
+
+        if (data) {
+          const descriptions: Record<string, string> = {};
+          data.forEach((item: any) => {
+            descriptions[item.componente_codigo] = item.descricao || item.referencia || "";
+          });
+          setComponentDescriptions(prev => ({ ...prev, ...descriptions }));
+        }
+      } catch (err) {
+        console.error("Error fetching component descriptions:", err);
+      }
+    };
+
+    fetchComponentDescriptions();
+  }, [supplierProducts]);
 
   // Extract finalized conferences as separate sessions
   const conferencesHistory = useMemo(() => {
@@ -188,11 +229,30 @@ export function TratamentoFornecedor() {
 
     // 1. Get all products with individual overrides applied
     const rawProductsWithOverrides = supplierProducts.map((p, idx) => {
-      const key = `${p.idLaudo}-${p.originalIdx}`;
+      const key = p.itemName ? `${p.idLaudo}-${p.originalIdx}-${p.itemName}` : `${p.idLaudo}-${p.originalIdx}`;
       const overrides = productOverrides[key] || {};
+      
+      // Get description from DB if it was a split item
+      const dbDescription = p.itemName ? componentDescriptions[p.itemName] : null;
+
+      // Fields to clear by default (forcing manual entry)
+      const clearedFields = {
+        vUnit: "",
+        vProd: "",
+        cst: "",
+        cfop: "",
+        vBCICMS: "",
+        vICMS: "",
+        vIPI: "",
+        pICMS: "",
+        pIPI: ""
+      };
+
       return {
         ...p,
-        ...overrides,
+        ...clearedFields, // Override XML data with blanks
+        descricao: dbDescription || p.itemName || p.descricao, // Preference: DB > itemName > Kit Desc
+        ...overrides,    // Apply user manual entry
         originalKey: key
       };
     });
@@ -201,8 +261,10 @@ export function TratamentoFornecedor() {
     const groupedMap = new Map<string, any>();
 
     rawProductsWithOverrides.forEach(p => {
-      // Grouping key: code, ncm, unit, unitValue, cfop, cst
-      const groupKey = `${p.codigo}|${p.ncm || ""}|${p.unidade || ""}|${p.vUnit || ""}|${p.cfop || ""}|${p.cst || ""}`;
+      // Grouping key: code, ncm, unit
+      // We removed cst, cfop and vUnit from the key because they are likely to be filled in later 
+      // and we want items to group by product identity first.
+      const groupKey = `${p.codigo}|${p.ncm || ""}|${p.unidade || ""}`;
       
       if (groupedMap.has(groupKey)) {
         const group = groupedMap.get(groupKey);
@@ -211,9 +273,14 @@ export function TratamentoFornecedor() {
         const pQty = parseFloat(String(p.quantidade).replace(',', '.')) || 0;
         group.quantidade = (currentQty + pQty).toString().replace('.', ',');
 
+        // Sum vProd only if they are numbers
         const currentTotal = parseFloat(String(group.vProd).replace(',', '.')) || 0;
         const pTotal = parseFloat(String(p.vProd).replace(',', '.')) || 0;
-        group.vProd = (currentTotal + pTotal).toFixed(2).replace('.', ',');
+        if (!isNaN(currentTotal + pTotal) && (group.vProd || p.vProd)) {
+          group.vProd = (currentTotal + pTotal).toFixed(2).replace('.', ',');
+        } else {
+          group.vProd = group.vProd || p.vProd || "";
+        }
 
         group.originalKeys.push(p.originalKey);
       } else {
@@ -246,7 +313,10 @@ export function TratamentoFornecedor() {
           
           keysToUpdate.forEach((key: string) => {
             const currentOverrides = newOverrides[key] || {};
-            const itemOriginal = supplierProducts.find(sp => `${sp.idLaudo}-${sp.originalIdx}` === key);
+            const itemOriginal = supplierProducts.find(sp => {
+              const spKey = sp.itemName ? `${sp.idLaudo}-${sp.originalIdx}-${sp.itemName}` : `${sp.idLaudo}-${sp.originalIdx}`;
+              return spKey === key;
+            });
             
             const updated = { ...currentOverrides, [field]: value };
 
@@ -277,7 +347,7 @@ export function TratamentoFornecedor() {
         });
       }
     };
-  }, [selectedSupplier, viewMode, allCadastros, selectedCarrierId, profile, supplierProducts, productOverrides, naturezaOperacao, conferenceStartedBy]);
+  }, [selectedSupplier, viewMode, allCadastros, selectedCarrierId, profile, supplierProducts, productOverrides, naturezaOperacao, conferenceStartedBy, componentDescriptions]);
 
   const filteredSuppliers = manufacturers.filter(s =>
     s.toLowerCase().includes(searchTerm.toLowerCase())
@@ -331,8 +401,8 @@ export function TratamentoFornecedor() {
     toast.info("Conferência iniciada. Marque os itens e clique em FINALIZAR.");
   };
 
-  const handleToggleLocalCheck = (idLaudo: string, productIdxAtLaudo: number) => {
-    const key = `${idLaudo}-${productIdxAtLaudo}`;
+  const handleToggleLocalCheck = (idLaudo: string, productIdxAtLaudo: number, itemName?: string) => {
+    const key = itemName ? `${idLaudo}-${productIdxAtLaudo}-${itemName}` : `${idLaudo}-${productIdxAtLaudo}`;
     setLocalChecks(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -354,25 +424,20 @@ export function TratamentoFornecedor() {
         let hasChange = false;
         const updatedProdutos = laudo.produtos.map((p, idx) => {
           const key = `${id}-${idx}`;
-          if (localChecks.hasOwnProperty(key)) {
-            const isCheckedNow = !!localChecks[key];
-            // If item is being checked in this session, assign it to the session
-            if (isCheckedNow && !p.conferido) {
-              hasChange = true;
-              return { 
-                ...p, 
-                conferido: true, 
-                data_conferencia: sessionTimestamp,
-                conferente: profile.nome,
-                conferenteId: user?.id
-              };
-            }
-            // If it was already checked and we are toggling it OFF (less likely but possible)
-            if (!isCheckedNow && p.conferido) {
-               hasChange = true;
-               const { conferido, data_conferencia, conferente, ...rest } = p;
-               return rest;
-            }
+          // Check if ANY sub-item or the main item is checked
+          const isAnyItemChecked = Object.keys(localChecks).some(checkKey => 
+            checkKey === key || checkKey.startsWith(`${key}-`)
+          );
+
+          if (isAnyItemChecked && !p.conferido) {
+            hasChange = true;
+            return { 
+              ...p, 
+              conferido: true, 
+              data_conferencia: sessionTimestamp,
+              conferente: profile.nome,
+              conferenteId: user?.id
+            };
           }
           return p;
         });
@@ -875,7 +940,7 @@ export function TratamentoFornecedor() {
                                 <td className="px-4 py-3 text-xs">{p.dataKit || "-"}</td>
                                 <td className="px-4 py-3 text-center no-print">
                                   <button
-                                    onClick={() => handleToggleLocalCheck(p.idLaudo, p.originalIdx)}
+                                    onClick={() => handleToggleLocalCheck(p.idLaudo, p.originalIdx, p.itemName)}
                                     disabled={!isConferringLocally}
                                     className={`p-2 rounded-lg transition-all ${p.conferido
                                         ? "bg-green-100 text-green-600 hover:bg-green-200"

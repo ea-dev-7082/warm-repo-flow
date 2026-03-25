@@ -870,8 +870,8 @@ export function LaudoTecnico() {
                             <MultiSelect
                               options={(componentOptions[p.referencia?.toUpperCase()] || componentOptions[p.codigo] || ITEM_OPTIONS).filter((opt: string) => !p.itemReaproveitado?.includes(opt))}
                               selected={p.itemAvaliado ? p.itemAvaliado.split(", ").filter(Boolean) : []}
-                              disabled={!p.recebido}
-                              placeholder="Itens..."
+                              disabled={!p.recebido || !p.referencia}
+                              placeholder={p.referencia ? "Itens..." : "Busque uma Ref..."}
                               themeColor="blue"
                               direction="up"
                               onChange={(selected) => {
@@ -949,8 +949,8 @@ export function LaudoTecnico() {
                             <MultiSelect
                               options={(componentOptions[p.referencia?.toUpperCase()] || componentOptions[p.codigo] || ITEM_OPTIONS).filter((opt: string) => !p.itemAvaliado?.includes(opt))}
                               selected={p.itemReaproveitado ? p.itemReaproveitado.split(", ").filter(Boolean) : []}
-                              disabled={!p.recebido}
-                              placeholder="Reapr..."
+                              disabled={!p.recebido || !p.referencia}
+                              placeholder={p.referencia ? "Reapr..." : "Busque uma Ref..."}
                               themeColor="green"
                               direction="up"
                               onChange={(selected) => {
