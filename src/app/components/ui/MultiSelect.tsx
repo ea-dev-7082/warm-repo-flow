@@ -24,6 +24,7 @@ export function MultiSelect({
 }: MultiSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const colors = {
@@ -61,7 +62,12 @@ export function MultiSelect({
         option.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    useEffect(() => {
+        setHighlightedIndex(0);
+    }, [searchTerm, isOpen]);
+
     const toggleOption = (option: string) => {
+        if (!option) return;
         const newSelected = selected.includes(option)
             ? selected.filter(item => item !== option)
             : [...selected, option];
@@ -75,11 +81,27 @@ export function MultiSelect({
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (disabled) return;
-        if (e.key === "Enter") {
-            // Se o dropdown está fechado, abre. Se está aberto, o Enter no input de busca já é tratado.
-            // Aqui permitimos que o Enter saia do componente se não estivermos capturando de forma agressiva.
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
             if (!isOpen) {
                 setIsOpen(true);
+            } else {
+                setHighlightedIndex((prev) => (prev + 1) % filteredOptions.length);
+            }
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            if (!isOpen) {
+                setIsOpen(true);
+            } else {
+                setHighlightedIndex((prev) => (prev - 1 + filteredOptions.length) % filteredOptions.length);
+            }
+        } else if (e.key === "Enter") {
+            if (!isOpen) {
+                setIsOpen(true);
+                e.preventDefault();
+            } else if (filteredOptions.length > 0) {
+                toggleOption(filteredOptions[highlightedIndex]);
                 e.preventDefault();
             }
         } else if (e.key === "Escape") {
@@ -136,20 +158,40 @@ export function MultiSelect({
                             placeholder="Pesquisar..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                                    // Defer arrow keys to the container
+                                    return;
+                                }
+                                if (e.key === "Enter") {
+                                    if (filteredOptions.length > 0) {
+                                        toggleOption(filteredOptions[highlightedIndex]);
+                                    } else {
+                                        setIsOpen(false);
+                                    }
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }
+                            }}
                             className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded outline-none focus:ring-1 focus:ring-blue-500"
                             onClick={(e) => e.stopPropagation()}
                         />
                     </div>
                     <div className="overflow-y-auto flex-grow py-1">
                         {filteredOptions.length > 0 ? (
-                            filteredOptions.map(option => {
+                            filteredOptions.map((option, index) => {
                                 const isSelected = selected.includes(option);
+                                const isHighlighted = index === highlightedIndex;
                                 return (
                                     <div
                                         key={option}
                                         onClick={() => toggleOption(option)}
-                                        className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between transition-colors ${isSelected ? `${currentTheme.activeBg} ${currentTheme.activeText}` : currentTheme.hoverBg
-                                            }`}
+                                        onMouseEnter={() => setHighlightedIndex(index)}
+                                        className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                                            isSelected ? `${currentTheme.activeBg} ${currentTheme.activeText}` : 
+                                            isHighlighted ? "bg-gray-100 text-gray-900" : 
+                                            currentTheme.hoverBg
+                                        }`}
                                     >
                                         <span>{option}</span>
                                         {isSelected && <Check size={12} />}

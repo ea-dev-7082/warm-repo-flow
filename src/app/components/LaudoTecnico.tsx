@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertCircle, Download, FileDown, Plus, Printer, Save } from "lucide-react";
+import { AlertCircle, Download, FileDown, Plus, Printer, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
 import { MultiSelect } from "./ui/MultiSelect";
@@ -228,8 +228,8 @@ export function LaudoTecnico() {
         const formattedGarantia = nfGarantiaValue.toString();
 
         // Duplicate check
-        const existingLaudo = laudos.find(l => 
-          l.nfGarantia === formattedGarantia && 
+        const existingLaudo = laudos.find(l =>
+          l.nfGarantia === formattedGarantia &&
           l.cliente.trim().toUpperCase() === cliente.trim().toUpperCase()
         );
 
@@ -820,7 +820,7 @@ export function LaudoTecnico() {
                           </td>
                           <td className="px-2 py-3 font-bold text-gray-900 whitespace-nowrap">{p.codigo}</td>
                           <td className="px-2 py-3 text-xs text-gray-600 max-w-[150px] truncate" title={p.descricao}>{p.descricao}</td>
-                          <td className="px-2 py-2 min-w-[100px]">
+                          <td className="px-2 py-2 min-w-[80px] w-[80px]">
                             <input
                               type="text"
                               value={p.referencia || ""}
@@ -845,7 +845,7 @@ export function LaudoTecnico() {
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100"
                             />
                           </td>
-                          <td className="px-2 py-2 min-w-[80px]">
+                          <td className="px-2 py-2 min-w-[60px] w-[60px]">
                             <input
                               type="text"
                               maxLength={4}
@@ -886,6 +886,35 @@ export function LaudoTecnico() {
                             {(() => {
                               const itensSelecionados = p.itemAvaliado ? p.itemAvaliado.split(", ").filter(Boolean) : [];
                               if (itensSelecionados.length === 0) {
+                                const isCustomSingle = p.fabricante && !manufacturers.includes(p.fabricante) && !p.fabricante.startsWith("{");
+                                if (p.fabricante === "Outros" || isCustomSingle) {
+                                  return (
+                                    <div className="relative">
+                                      <input
+                                        type="text"
+                                        value={p.fabricante === "Outros" ? "" : p.fabricante}
+                                        placeholder="Qual fabricante?"
+                                        autoFocus
+                                        className="w-full px-2 py-1 border border-blue-500 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none"
+                                        onChange={(e) => {
+                                          const newProdutos = [...formData.produtos];
+                                          newProdutos[i].fabricante = e.target.value;
+                                          setFormData({ ...formData, produtos: newProdutos });
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          const newProdutos = [...formData.produtos];
+                                          newProdutos[i].fabricante = "";
+                                          setFormData({ ...formData, produtos: newProdutos });
+                                        }}
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  );
+                                }
                                 return (
                                   <SearchableSelect
                                     options={[...manufacturers, "Outros"]}
@@ -917,28 +946,79 @@ export function LaudoTecnico() {
                                       {itensSelecionados.length > 1 && (
                                         <span className="text-[9px] font-bold text-gray-500 truncate" title={itemSelected}>{itemSelected.split(" ")[0]}</span>
                                       )}
-                                      <SearchableSelect
-                                      options={[...manufacturers, "Outros"]}
-                                        value={parsedFabricante[itemSelected] || ""}
-                                        disabled={!p.recebido}
-                                        placeholder="Fabricante..."
-                                        direction="up"
-                                        onKeyDown={handleEnterNavigation}
-                                        onChange={(val) => {
-                                          const newProdutos = [...formData.produtos];
-                                          let updatedParsed = { ...parsedFabricante };
-                                          updatedParsed[itemSelected] = val;
+                                    {(() => {
+                                      const currentVal = parsedFabricante[itemSelected] || "";
+                                      const isCustomMulti = currentVal && !manufacturers.includes(currentVal) && currentVal !== "Outros";
 
-                                          // Keep only selected items in JSON mapping
-                                          const cleaned: Record<string, string> = {};
-                                          itensSelecionados.forEach((it: string) => {
-                                            if (updatedParsed[it]) cleaned[it] = updatedParsed[it];
-                                          });
+                                      if (currentVal === "Outros" || isCustomMulti) {
+                                        return (
+                                          <div className="relative">
+                                            <input
+                                              type="text"
+                                              value={currentVal === "Outros" ? "" : currentVal}
+                                              placeholder="Qual fabricante?"
+                                              autoFocus
+                                              className="w-full px-2 py-1 border border-blue-500 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none"
+                                              onChange={(e) => {
+                                                const newProdutos = [...formData.produtos];
+                                                let updatedParsed = { ...parsedFabricante };
+                                                updatedParsed[itemSelected] = e.target.value;
 
-                                          newProdutos[i].fabricante = JSON.stringify(cleaned);
-                                          setFormData({ ...formData, produtos: newProdutos });
-                                        }}
-                                      />
+                                                const cleaned: Record<string, string> = {};
+                                                itensSelecionados.forEach((it: string) => {
+                                                  if (updatedParsed[it]) cleaned[it] = updatedParsed[it];
+                                                });
+
+                                                newProdutos[i].fabricante = JSON.stringify(cleaned);
+                                                setFormData({ ...formData, produtos: newProdutos });
+                                              }}
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                const newProdutos = [...formData.produtos];
+                                                let updatedParsed = { ...parsedFabricante };
+                                                delete updatedParsed[itemSelected];
+
+                                                const cleaned: Record<string, string> = {};
+                                                itensSelecionados.forEach((it: string) => {
+                                                  if (updatedParsed[it]) cleaned[it] = updatedParsed[it];
+                                                });
+
+                                                newProdutos[i].fabricante = JSON.stringify(cleaned);
+                                                setFormData({ ...formData, produtos: newProdutos });
+                                              }}
+                                              className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                                            >
+                                              <X size={12} />
+                                            </button>
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <SearchableSelect
+                                          options={[...manufacturers, "Outros"]}
+                                          value={currentVal}
+                                          disabled={!p.recebido}
+                                          placeholder="Fabricante..."
+                                          direction="up"
+                                          onKeyDown={handleEnterNavigation}
+                                          onChange={(val) => {
+                                            const newProdutos = [...formData.produtos];
+                                            let updatedParsed = { ...parsedFabricante };
+                                            updatedParsed[itemSelected] = val;
+
+                                            const cleaned: Record<string, string> = {};
+                                            itensSelecionados.forEach((it: string) => {
+                                              if (updatedParsed[it]) cleaned[it] = updatedParsed[it];
+                                            });
+
+                                            newProdutos[i].fabricante = JSON.stringify(cleaned);
+                                            setFormData({ ...formData, produtos: newProdutos });
+                                          }}
+                                        />
+                                      );
+                                    })()}
                                     </div>
                                   ))}
                                 </div>
@@ -961,9 +1041,9 @@ export function LaudoTecnico() {
                               onKeyDown={handleEnterNavigation}
                             />
                           </td>
-                          <td className="px-2 py-2">
+                          <td className="px-2 py-2 min-w-[150px]">
                             <SearchableSelect
-                              options={["procedente", "nao-procedente"]}
+                              options={["Procedente", "Não Procedente"]}
                               value={p.status}
                               disabled={!p.recebido}
                               placeholder="Status..."
@@ -977,7 +1057,7 @@ export function LaudoTecnico() {
                           </td>
                           <td className="px-2 py-2 min-w-[200px] space-y-1">
                             <SearchableSelect
-                              options={["troca", "Cortesia", "devolucao"]}
+                              options={["Troca", "Cortesia", "Devolução"]}
                               value={p.acao}
                               disabled={!p.recebido}
                               placeholder="Resolução..."
@@ -1093,13 +1173,13 @@ export function LaudoTecnico() {
                   <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 w-fit">
                     <div className="font-bold whitespace-nowrap text-gray-900">TOTAL DE PEÇAS EM GARANTIA APROVADAS:</div>
                     <div className="font-bold text-gray-900 text-right">{totalAprovadas}</div>
-                    
+
                     <div className="pl-4 text-gray-600 italic whitespace-nowrap">- ATENDIDAS:</div>
                     <div className="text-gray-600 italic text-right">{totalAprovadas}</div>
-                    
+
                     <div className="font-bold whitespace-nowrap text-gray-900">TOTAL DE PEÇAS EM GARANTIA REPROVADAS:</div>
                     <div className="font-bold text-gray-900 text-right">{totalReprovadas}</div>
-                    
+
                     <div className="pl-4 text-gray-600 italic whitespace-nowrap">- CORTESIAS:</div>
                     <div className="text-gray-600 italic text-right">{totalCortesia}</div>
                   </div>

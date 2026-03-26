@@ -7,7 +7,7 @@ interface Message {
   content: string;
 }
 
-const WEBHOOK_URL = "https://n8n.kaffspiel.cloud/webhook/eu-sou-garantista"; // Placeholder - replace with actual webhook
+const WEBHOOK_URL = "https://n8n.kaffspiel.cloud/webhook/garantia-support"; // Placeholder - replace with actual webhook
 
 export function FloatingSupportChat() {
   const { user } = useAuth();
@@ -41,7 +41,7 @@ export function FloatingSupportChat() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: userMessage,
           chatHistory: messages,
           userId: user?.id
@@ -51,12 +51,12 @@ export function FloatingSupportChat() {
       if (!response.ok) throw new Error("Falha ao conectar com o agente de suporte.");
 
       const data = await response.json();
-      
+
       // O n8n geralmente retorna um array ou objeto. Pegamos o campo de saída mais comum.
       const responseData = Array.isArray(data) ? data[0] : data;
-      const assistantMessage = 
-        responseData.output || 
-        responseData.message || 
+      const assistantMessage =
+        responseData.output ||
+        responseData.message ||
         responseData.response ||
         (typeof responseData === "string" ? responseData : "Desculpe, não consegui processar sua solicitação no momento.");
 
@@ -108,8 +108,8 @@ export function FloatingSupportChat() {
               >
                 <div
                   className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === "user"
-                      ? "bg-blue-600 text-white rounded-tr-none"
-                      : "bg-white text-gray-800 border border-gray-200 rounded-tl-none shadow-sm"
+                    ? "bg-blue-600 text-white rounded-tr-none"
+                    : "bg-white text-gray-800 border border-gray-200 rounded-tl-none shadow-sm"
                     }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>

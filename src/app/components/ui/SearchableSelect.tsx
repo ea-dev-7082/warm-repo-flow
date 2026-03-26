@@ -22,6 +22,7 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -38,7 +39,12 @@ export function SearchableSelect({
         option.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    useEffect(() => {
+        setHighlightedIndex(0);
+    }, [searchTerm, isOpen]);
+
     const handleSelect = (option: string) => {
+        if (!option) return;
         onChange(option);
         setIsOpen(false);
         setSearchTerm("");
@@ -46,9 +52,27 @@ export function SearchableSelect({
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (disabled) return;
-        if (e.key === "Enter") {
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
             if (!isOpen) {
                 setIsOpen(true);
+            } else {
+                setHighlightedIndex((prev) => (prev + 1) % filteredOptions.length);
+            }
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            if (!isOpen) {
+                setIsOpen(true);
+            } else {
+                setHighlightedIndex((prev) => (prev - 1 + filteredOptions.length) % filteredOptions.length);
+            }
+        } else if (e.key === "Enter") {
+            if (!isOpen) {
+                setIsOpen(true);
+                e.preventDefault();
+            } else if (filteredOptions.length > 0) {
+                handleSelect(filteredOptions[highlightedIndex]);
                 e.preventDefault();
             }
         } else if (e.key === "Escape") {
@@ -90,15 +114,19 @@ export function SearchableSelect({
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={(e) => {
+                                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                                        // Defer arrow keys to the container
+                                        return;
+                                    }
                                     if (e.key === "Enter") {
                                         if (filteredOptions.length > 0) {
-                                            handleSelect(filteredOptions[0]);
+                                            handleSelect(filteredOptions[highlightedIndex]);
                                         } else {
                                             setIsOpen(false);
                                         }
-                                        e.stopPropagation(); // Prevent bubbling to the container's handleKeyDown or global listener
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                     }
-                                    e.stopPropagation();
                                 }}
                                 className="w-full pl-7 pr-2 py-1.5 text-[10px] border border-gray-200 rounded outline-none focus:ring-1 focus:ring-blue-500"
                                 onClick={(e) => e.stopPropagation()}
@@ -107,14 +135,19 @@ export function SearchableSelect({
                     </div>
                     <div className="overflow-y-auto flex-grow py-1">
                         {filteredOptions.length > 0 ? (
-                            filteredOptions.map(option => {
+                            filteredOptions.map((option, index) => {
                                 const isSelected = value === option;
+                                const isHighlighted = index === highlightedIndex;
                                 return (
                                     <div
                                         key={option}
                                         onClick={() => handleSelect(option)}
-                                        className={`px-3 py-1.5 text-[10px] cursor-pointer flex items-center justify-between transition-colors ${isSelected ? "bg-blue-600 text-white" : "hover:bg-blue-50"
-                                            }`}
+                                        onMouseEnter={() => setHighlightedIndex(index)}
+                                        className={`px-3 py-1.5 text-[10px] cursor-pointer flex items-center justify-between transition-colors ${
+                                            isSelected ? "bg-blue-600 text-white" : 
+                                            isHighlighted ? "bg-blue-100 text-blue-900" : 
+                                            "hover:bg-blue-50"
+                                        }`}
                                     >
                                         <span className="truncate">{option}</span>
                                         {isSelected && <Check size={10} />}
