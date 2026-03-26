@@ -124,16 +124,16 @@ function HistoricoRow({ item, index, handleVerLaudo }: HistoricoRowProps) {
 
   return (
     <tr key={index} className="hover:bg-gray-50 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.data}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.produto}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.cliente}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.nfGarantia}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm">
+      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.data}</td>
+      <td className="px-3 py-4 text-sm text-gray-900 font-medium min-w-[150px] max-w-[250px]">{item.produto}</td>
+      <td className="px-3 py-4 text-sm text-gray-900 min-w-[150px] max-w-[250px]">{item.cliente}</td>
+      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.nfGarantia}</td>
+      <td className="px-3 py-4 whitespace-nowrap text-sm">
         <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium uppercase">
           Finalizado
         </span>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
         <div className="flex items-center gap-2">
           {localNotaPaga && localNotaPaga.startsWith('http') ? (
             <div className="flex items-center gap-2">
@@ -175,7 +175,7 @@ function HistoricoRow({ item, index, handleVerLaudo }: HistoricoRowProps) {
           />
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
         <div className="flex gap-2">
           <button
             onClick={() => handleVerLaudo(item, "cliente")}
@@ -299,7 +299,7 @@ export function Historico() {
       {/* Filtros */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Período (Início)
@@ -414,13 +414,13 @@ export function Historico() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NF Garantia</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota Paga</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NF Garantia</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota Paga</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
