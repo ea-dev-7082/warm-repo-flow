@@ -11,6 +11,16 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/firebird-api": {
+        target: "https://api-firebird-garantia.loca.lt",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/firebird-api/, ""),
+        headers: {
+          "bypass-tunnel-reminder": "true",
+        },
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

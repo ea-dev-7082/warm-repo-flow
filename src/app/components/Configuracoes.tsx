@@ -14,7 +14,8 @@ import {
   Loader2,
   Trash2,
   Search,
-  Settings
+  Settings,
+  RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -60,6 +61,7 @@ export function Configuracoes() {
     uf: "",
     estado: ""
   });
+  const [isSyncingApi, setIsSyncingApi] = useState(false);
 
   // Signature settings (General/Legacy - keep for now if needed, but we focus on Profiles)
   const [savingSettings, setSavingSettings] = useState(false);
@@ -175,6 +177,69 @@ export function Configuracoes() {
       console.error("CNPJ Fetch Error:", error);
     } finally {
       setIsFetchingCnpj(false);
+    }
+  };
+
+  const handleSyncClientsApi = async () => {
+    setIsSyncingApi(true);
+    const apiToast = toast.loading("Sincronizando clientes com a API...");
+    try {
+      // Using Vite Proxy to bypass CORS (/firebird-api matches vite.config.ts rule)
+      const response = await fetch('/firebird-api/clientes/?limit=500', {
+        headers: {
+          'accept': 'application/json',
+          'X-API-KEY': 'minha_chave_secreta_123'
+        }
+      });
+
+      if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
+
+      const result = await response.json();
+      const apiData = result.data || [];
+
+      if (!Array.isArray(apiData)) throw new Error("Formato de dados inválido da API");
+
+      let recordsToUpsert = apiData.map((item: any) => ({
+        cnpj: String(item.CIC || "").replace(/\D/g, "").slice(0, 18),
+        nome: item.NOME || "Sem Nome",
+        classe: "cliente",
+        inscricao_estadual: String(item.INSC_IDENT || "").slice(0, 18),
+        email: item.EMAIL || null,
+        fone: String(item.TELEFONE || "").slice(0, 18),
+        endereco: item.ENDERECO || null,
+        numero: item.ENDERECO_NUM || null,
+        bairro: item.BAIRRO || null,
+        cep: String(item.CEP || "").replace(/\D/g, "").slice(0, 10),
+        uf: String(item.UF || "").slice(0, 2),
+        estado: item.CIDADE || null
+      })).filter((r: any) => r.cnpj.length > 0);
+
+      // Filter duplicates by CNPJ to avoid Postgres error "ON CONFLICT DO UPDATE command cannot affect row a second time"
+      const seenCnpjs = new Set();
+      recordsToUpsert = recordsToUpsert.filter(r => {
+        if (seenCnpjs.has(r.cnpj)) return false;
+        seenCnpjs.add(r.cnpj);
+        return true;
+      });
+
+      if (recordsToUpsert.length === 0) {
+        toast.error("Nenhum cliente válido encontrado na API.", { id: apiToast });
+        return;
+      }
+
+      const { error } = await (supabase as any)
+        .from("cadastros")
+        .upsert(recordsToUpsert, { onConflict: 'cnpj' });
+
+      if (error) throw error;
+
+      toast.success(`${recordsToUpsert.length} clientes sincronizados com sucesso!`, { id: apiToast });
+      fetchCadastros();
+    } catch (error: any) {
+      toast.error("Erro na sincronização: " + error.message, { id: apiToast });
+      console.error("Sync Error:", error);
+    } finally {
+      setIsSyncingApi(false);
     }
   };
 
@@ -580,6 +645,16 @@ export function Configuracoes() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {recordFilter === "cliente" && (
+                  <button
+                    onClick={handleSyncClientsApi}
+                    disabled={isSyncingApi}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all text-sm font-bold flex items-center gap-2 whitespace-nowrap shadow-lg shadow-emerald-200 disabled:opacity-50"
+                  >
+                    {isSyncingApi ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                    Sincronizar API
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setEditingRecord(null);
