@@ -122,7 +122,8 @@ export function WarrantyReportDetails() {
       if (!p.recebido) {
         statusLabel = 'NÃO RECEBIDO';
       } else {
-        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROCEDENTE' : '-');
+        const s = (p.status || '').toLowerCase();
+        statusLabel = s === 'procedente' ? 'PROCEDENTE' : (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente' ? 'NÃO PROCEDENTE' : '-');
       }
 
       const item = p.itemAvaliado || '-';
@@ -163,7 +164,8 @@ export function WarrantyReportDetails() {
       if (!p.recebido) {
         statusLabel = 'NÃO RECEBIDO';
       } else {
-        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROCEDENTE' : '-');
+        const s = (p.status || '').toLowerCase();
+        statusLabel = s === 'procedente' ? 'PROCEDENTE' : (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente' ? 'NÃO PROCEDENTE' : '-');
       }
 
       const item = p.itemAvaliado || '-';
@@ -225,9 +227,12 @@ export function WarrantyReportDetails() {
       return acc;
     }, []) || [];
 
-  const totalAprovadas = dynamicData.produtos?.filter((p: any) => p.recebido && p.status === 'procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
-  const totalReprovadas = dynamicData.produtos?.filter((p: any) => p.recebido && p.status === 'nao-procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
-  const totalCortesia = dynamicData.produtos?.filter((p: any) => p.recebido && p.acao === 'Cortesia').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalAprovadas = dynamicData.produtos?.filter((p: any) => p.recebido && (p.status || '').toLowerCase() === 'procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalReprovadas = dynamicData.produtos?.filter((p: any) => {
+    const s = (p.status || '').toLowerCase();
+    return p.recebido && (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente');
+  }).reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalCortesia = dynamicData.produtos?.filter((p: any) => p.recebido && (p.acao || '').toLowerCase() === 'cortesia').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
 
   const handlePrint = (elementId: string) => {
     const el = document.getElementById(elementId);
@@ -349,10 +354,13 @@ export function WarrantyReportDetails() {
             .text-green-600 { color: #16a34a; }
             .text-red-600 { color: #dc2626; }
             .text-blue-700 { color: #1d4ed8; }
+            .hidden { display: none !important; }
             @media print {
               @page { size: A4 landscape; margin: 10mm; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               select, input, .print\\:hidden { display: none !important; }
+              .print\\:inline { display: inline !important; }
+              .print\\:block { display: block !important; }
             }
           </style>
         </head>

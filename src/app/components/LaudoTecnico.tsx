@@ -473,11 +473,14 @@ export function LaudoTecnico() {
             .bg-white { background-color: #ffffff; }
             .text-blue-900 { color: rgb(30 58 138); }
             .font-medium { font-weight: 500; }
+            .hidden { display: none !important; }
 
             @media print {
               @page { size: A4 landscape; margin: 10mm; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               select, input, .print\\:hidden { display: none !important; }
+              .print\\:inline { display: inline !important; }
+              .print\\:block { display: block !important; }
             }
           </style>
         </head>
@@ -513,7 +516,8 @@ export function LaudoTecnico() {
       if (!p.recebido) {
         statusLabel = 'NÃO RECEBIDO';
       } else {
-        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROCEDENTE' : '-');
+        const s = (p.status || '').toLowerCase();
+        statusLabel = s === 'procedente' ? 'PROCEDENTE' : (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente' ? 'NÃO PROCEDENTE' : '-');
       }
 
       const item = p.itemAvaliado || '-';
@@ -555,7 +559,8 @@ export function LaudoTecnico() {
       if (!p.recebido) {
         statusLabel = 'NÃO RECEBIDO';
       } else {
-        statusLabel = p.status === 'procedente' ? 'PROCEDENTE' : (p.status === 'nao-procedente' ? 'NÃO PROCEDENTE' : '-');
+        const s = (p.status || '').toLowerCase();
+        statusLabel = s === 'procedente' ? 'PROCEDENTE' : (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente' ? 'NÃO PROCEDENTE' : '-');
       }
 
       const item = p.itemAvaliado || '-';
@@ -617,9 +622,12 @@ export function LaudoTecnico() {
       return acc;
     }, []);
 
-  const totalAprovadas = formData.produtos?.filter((p: any) => p.recebido && p.status === 'procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
-  const totalReprovadas = formData.produtos?.filter((p: any) => p.recebido && p.status === 'nao-procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
-  const totalCortesia = formData.produtos?.filter((p: any) => p.recebido && p.acao === 'Cortesia').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalAprovadas = formData.produtos?.filter((p: any) => p.recebido && (p.status || '').toLowerCase() === 'procedente').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalReprovadas = formData.produtos?.filter((p: any) => {
+    const s = (p.status || '').toLowerCase();
+    return p.recebido && (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente');
+  }).reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
+  const totalCortesia = formData.produtos?.filter((p: any) => p.recebido && (p.acao || '').toLowerCase() === 'cortesia').reduce((acc: number, p: any) => acc + Number(p.quantidadeRecebida || p.quantidade || 0), 0) || 0;
 
   return (
     <div className="w-full space-y-6">
@@ -1213,7 +1221,10 @@ export function LaudoTecnico() {
                 <div className="grid grid-cols-2 border-b border-gray-900 text-xs h-12">
                   <div className="border-r border-gray-900 p-2">
                     <div className="font-bold uppercase">Data:</div>
-                    <input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} className="text-[10px] border-none p-0 focus:ring-0 w-full mt-1 bg-yellow-50/50" />
+                    <input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} className="text-[10px] border-none p-0 focus:ring-0 w-full mt-1 bg-yellow-50/50 print:hidden" />
+                    <div className="hidden print:block text-[10px] mt-1">
+                      {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    </div>
                   </div>
                   <div className="p-2">
                     <div className="font-bold uppercase mb-4 text-center">Validado por:</div>
