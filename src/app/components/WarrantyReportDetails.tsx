@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useLaudos } from "../contexts/LaudosContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../../integrations/supabase/client";
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 

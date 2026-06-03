@@ -12,6 +12,8 @@ import { useAuth } from "../hooks/useAuth";
 import html2pdf from 'html2pdf.js';
 // FABRICANTES is now dynamic from context
 
+const STORAGE_KEY = '@comkit:laudo-tecnico-draft';
+
 const ITEM_OPTIONS = [
   "Coxim", "Batente", "Coifa", "Rolamento",
   "Mola", "Bandeja", "Pivô", "Terminal", "Bucha"
@@ -76,6 +78,31 @@ export function LaudoTecnico() {
   const [pagamento, setPagamento] = useState<"garantia" | "bonificacao" | null>(
     importedData?.pagamento || null
   );
+
+  useEffect(() => {
+    // Só carregamos do rascunho se não for um laudo já existente vindo do banco
+    if (!importedData?.id) {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.formData) setFormData(parsed.formData);
+          if (parsed.pagamento !== undefined) setPagamento(parsed.pagamento);
+        } catch (e) {
+          console.error("Erro ao ler rascunho", e);
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    }
+  }, [importedData?.id]);
+
+  useEffect(() => {
+    // Salva o rascunho no cache sempre que formData ou pagamento mudar
+    // e se não for um laudo já existente
+    if (!importedData?.id) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, pagamento }));
+    }
+  }, [formData, pagamento, importedData?.id]);
 
   const [newItem, setNewItem] = useState({
     codigo: "",
@@ -391,6 +418,7 @@ export function LaudoTecnico() {
     } else {
       const id = await adicionarLaudo(laudoData);
       if (id) {
+        localStorage.removeItem(STORAGE_KEY);
         toast.success("Laudo salvo nos itens em aberto!");
         navigate("/laudos-abertos");
       }
@@ -722,7 +750,23 @@ export function LaudoTecnico() {
 
             <div className="mb-0">
               <div className="flex items-center justify-between mb-4 pb-2 border-b">
-                <h4 className="text-md font-medium text-gray-700">Produtos do XML / Manual</h4>
+                <div className="flex items-center gap-4">
+                  <h4 className="text-md font-medium text-gray-700">Produtos do XML / Manual</h4>
+                  {!importedData?.id && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Tem certeza que deseja descartar o rascunho atual?')) {
+                          localStorage.removeItem(STORAGE_KEY);
+                          window.location.reload();
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm transition-all text-xs font-bold active:scale-95 flex items-center gap-1"
+                      title="Apagar todos os dados inseridos e começar de novo"
+                    >
+                      Descartar Rascunho
+                    </button>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition-all cursor-pointer text-sm font-bold active:scale-95">
                     <FileDown size={18} />

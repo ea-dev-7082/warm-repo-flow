@@ -68,8 +68,11 @@ export function Relatorios() {
           const produtos = (l.xml_dados as any)?.produtos || [];
           produtos.forEach((p: any) => {
             if (p.recebido) {
-              if (p.status === "procedente") procedente++;
-              else if (p.status === "nao-procedente") naoProcedente++;
+              const s = (p.status || '').toLowerCase();
+              const qtde = Number(p.quantidadeRecebida || p.quantidade || 0);
+
+              if (s === "procedente") procedente += qtde;
+              else if (s === "não procedente" || s === "nao-procedente" || s === "nao procedente") naoProcedente += qtde;
             }
           });
         });

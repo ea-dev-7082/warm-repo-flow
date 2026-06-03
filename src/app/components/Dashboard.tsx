@@ -51,8 +51,14 @@ export function Dashboard() {
           const products = (report.xml_dados as any)?.produtos || [];
           products.forEach((p: any) => {
             if (p.recebido) {
-              if (p.status === 'procedente') procedentesCount++;
-              if (p.status === 'nao-procedente') naoProcedentesCount++;
+              const s = (p.status || '').toLowerCase();
+              const qtde = Number(p.quantidadeRecebida || p.quantidade || 0);
+
+              if (s === 'procedente') {
+                procedentesCount += qtde;
+              } else if (s === 'não procedente' || s === 'nao-procedente' || s === 'nao procedente') {
+                naoProcedentesCount += qtde;
+              }
             }
           });
         });

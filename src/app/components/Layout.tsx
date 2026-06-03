@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { FloatingSupportChat } from "./FloatingSupportChat";
+import { useNotifications } from "../hooks/useNotifications";
 
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -29,7 +30,9 @@ const menuItems = [
 export function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { profile, role, signOut } = useAuth();
+  const { notifications } = useNotifications();
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -119,10 +122,64 @@ export function Layout() {
               </h2>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
-                <Bell size={20} className="text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+                >
+                  <Bell size={20} className="text-gray-600" />
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  )}
+                </button>
+
+                {isNotificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+                      <h3 className="font-semibold text-gray-900">Notificações</h3>
+                      <span className="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full">
+                        {notifications.length}
+                      </span>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map(notif => (
+                          <div 
+                            key={notif.id}
+                            className="p-4 border-b border-gray-50 hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              if(notif.actionUrl) {
+                                window.location.href = notif.actionUrl;
+                              }
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                                notif.type === 'error' ? 'bg-red-500' :
+                                notif.type === 'warning' ? 'bg-orange-500' :
+                                notif.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                              }`} />
+                              <div>
+                                <h4 className="text-sm font-semibold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors">{notif.title}</h4>
+                                <p className="text-xs text-gray-600 leading-snug">{notif.message}</p>
+                                <span className="text-[10px] text-gray-400 mt-2 block font-medium">
+                                  {new Date(notif.timestamp).toLocaleDateString('pt-BR')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-6 text-center">
+                          <Bell size={24} className="mx-auto text-gray-300 mb-2" />
+                          <p className="text-gray-500 text-sm">Nenhuma notificação no momento.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
                 <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
                   <User size={14} className="text-white" />
