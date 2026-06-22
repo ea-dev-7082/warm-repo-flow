@@ -553,7 +553,7 @@ export function WarrantyReportDetails() {
 
             <div className="grid grid-cols-2 text-xs h-12">
               <div className="border-r border-gray-900 p-2">
-                <div className="font-bold uppercase">Doc: {dynamicData.nfGarantia}</div>
+                <div className="font-bold uppercase">Doc: {dynamicData.docAssinatura || dynamicData.nfGarantia}</div>
               </div>
               <div className="p-2">
                 <div className="font-bold uppercase mb-4 text-center">Autorizado por:</div>
@@ -685,7 +685,7 @@ export function WarrantyReportDetails() {
 
             <div className="grid grid-cols-2 text-xs h-12 text-left">
               <div className="border-r border-gray-900 p-2">
-                <div className="font-bold uppercase">Doc: {dynamicData.nfGarantia}</div>
+                <div className="font-bold uppercase">Doc: {dynamicData.docAssinatura || dynamicData.nfGarantia}</div>
               </div>
               <div className="p-2">
                 <div className="font-bold uppercase mb-4 text-center">Autorizado por:</div>

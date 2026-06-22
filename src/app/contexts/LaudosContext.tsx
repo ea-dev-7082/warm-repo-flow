@@ -153,6 +153,7 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
                 updatePayload.status = dados.statusLaudo === 'finalizado' ? 'Finalizado' : 'Em análise';
             }
             if (dados.responsavel) updatePayload.responsavel_nome = dados.responsavel;
+            if (dados.responsavelId) updatePayload.responsavel_id = dados.responsavelId;
 
             // Re-fetch current data to merge xml_dados
             const { data: current } = await supabase.from('laudos').select('xml_dados').eq('id', id).single();

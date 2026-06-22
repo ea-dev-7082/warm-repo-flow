@@ -58,6 +58,7 @@ export function LaudoTecnico() {
   const [formData, setFormData] = useState({
     cliente: importedData?.cliente || "",
     nfGarantia: importedData?.nfGarantia || "",
+    docAssinatura: importedData?.docAssinatura ?? importedData?.nfGarantia ?? "",
     nfInterna: importedData?.nfInterna || "",
     data: importedData?.data || new Date().toISOString().split("T")[0],
     responsavel: importedData?.responsavel || profile?.nome || "Responsável",
@@ -117,6 +118,18 @@ export function LaudoTecnico() {
 
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
   const [pendingXmlData, setPendingXmlData] = useState<any>(null);
+
+  const [showTakeoverModal, setShowTakeoverModal] = useState(false);
+  const [hasCheckedTakeover, setHasCheckedTakeover] = useState(false);
+
+  useEffect(() => {
+    if (profile?.user_id && importedData?.id && !hasCheckedTakeover) {
+      if (importedData.responsavelId && importedData.responsavelId !== profile.user_id) {
+        setShowTakeoverModal(true);
+      }
+      setHasCheckedTakeover(true);
+    }
+  }, [profile, importedData, hasCheckedTakeover]);
 
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
   const [componentOptions, setComponentOptions] = useState<Record<string, string[]>>({});
@@ -342,6 +355,7 @@ export function LaudoTecnico() {
       ...formData,
       cliente: data.cliente,
       nfGarantia: data.nfGarantia,
+      docAssinatura: data.nfGarantia,
       nfInterna: data.nfInterna,
       produtos: [...formData.produtos, ...data.produtos]
     });
@@ -403,12 +417,14 @@ export function LaudoTecnico() {
     const laudoData = {
       cliente: formData.cliente,
       nfGarantia: formData.nfGarantia,
+      docAssinatura: formData.docAssinatura,
       data: formData.data,
       nfInterna: formData.nfInterna,
       produtos: formData.produtos,
       pagamento,
       statusLaudo: importedData?.statusLaudo || ("aberto" as const),
-      responsavel: formData.responsavel
+      responsavel: formData.responsavel,
+      responsavelId: profile?.user_id
     };
 
     if (importedData?.id) {
@@ -1265,7 +1281,7 @@ export function LaudoTecnico() {
                 <div className="grid grid-cols-2 border-b border-gray-900 text-xs h-12">
                   <div className="border-r border-gray-900 p-2">
                     <div className="font-bold uppercase">Data:</div>
-                    <input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} className="text-[10px] border-none p-0 focus:ring-0 w-full mt-1 bg-yellow-50/50 print:hidden" />
+                    <input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} className="text-[10px] border-none p-0 focus:ring-0 w-full mt-1 bg-gray-100 print:hidden" />
                     <div className="hidden print:block text-[10px] mt-1">
                       {new Date(formData.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                     </div>
@@ -1277,8 +1293,10 @@ export function LaudoTecnico() {
                 </div>
 
                 <div className="grid grid-cols-2 text-xs h-12">
-                  <div className="border-r border-gray-900 p-2">
-                    <div className="font-bold uppercase">Doc: {formData.nfGarantia}</div>
+                  <div className="border-r border-gray-900 p-2 flex items-center gap-1">
+                    <div className="font-bold uppercase">Doc:</div>
+                    <input type="text" value={formData.docAssinatura} onChange={(e) => setFormData({ ...formData, docAssinatura: e.target.value })} className="text-xs border-none p-0 focus:ring-0 w-full bg-gray-100 print:hidden font-bold" />
+                    <div className="hidden print:block font-bold uppercase">{formData.docAssinatura}</div>
                   </div>
                   <div className="p-2">
                     <div className="font-bold uppercase mb-4 text-center">Autorizado por:</div>
@@ -1456,6 +1474,46 @@ export function LaudoTecnico() {
                 className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-all active:scale-[0.98]"
               >
                 Não, Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Takeover */}
+      {showTakeoverModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center border-b border-gray-100">
+              <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Laudo de Outro Usuário</h3>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                Esse laudo foi iniciado por <strong>{importedData?.responsavel || "outro analista"}</strong>.
+                Se você deseja continuar a análise, você será o novo responsável.
+              </p>
+              <p className="text-gray-700 mt-4 font-semibold">
+                Deseja continuar mesmo assim?
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, responsavel: profile?.nome || "Responsável" }));
+                  setShowTakeoverModal(false);
+                }}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]"
+              >
+                Sim, assumir a análise
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/laudos-abertos");
+                }}
+                className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-all active:scale-[0.98]"
+              >
+                Não, voltar
               </button>
             </div>
           </div>
