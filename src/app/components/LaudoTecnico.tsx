@@ -1410,7 +1410,16 @@ export function LaudoTecnico() {
               <button onClick={() => setActiveTab("analise")} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                 Voltar para Análise
               </button>
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center">
+                <select
+                  value={printFit}
+                  onChange={(e) => setPrintFit(e.target.value as "auto" | "none")}
+                  className="px-3 py-3 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white"
+                  title="Ajuste da impressão"
+                >
+                  <option value="auto">Automático (uma folha)</option>
+                  <option value="none">Tamanho normal</option>
+                </select>
                 <button onClick={() => handlePrint('print-laudo-interna')} className="px-5 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center gap-2">
                   <Printer size={16} />
                   Imprimir
