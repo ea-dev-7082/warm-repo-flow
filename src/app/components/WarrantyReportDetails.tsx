@@ -6,6 +6,73 @@ import { useLaudos } from "../contexts/LaudosContext";
 import { supabase } from "../../integrations/supabase/client";
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+import { printDocument } from "../utils/printDocument";
+
+const WARRANTY_PRINT_CSS = `
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #fff; }
+  .grid { display: grid; }
+  .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
+  .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .border-2 { border: 2px solid #111827; }
+  .border { border: 1px solid #111827; }
+  .border-b-2 { border-bottom: 2px solid #111827; }
+  .border-b { border-bottom: 1px solid #111827; }
+  .border-r-2 { border-right: 2px solid #111827; }
+  .border-r { border-right: 1px solid #111827; }
+  .border-t-2 { border-top: 2px solid #111827; }
+  .border-t { border-top: 1px solid #111827; }
+  .p-1 { padding: 4px; }
+  .p-2 { padding: 8px; }
+  .p-3 { padding: 12px; }
+  .p-4 { padding: 16px; }
+  .p-8 { padding: 32px; }
+  .text-center { text-align: center; }
+  .font-bold { font-weight: bold; }
+  .font-medium { font-weight: 500; }
+  .uppercase { text-transform: uppercase; }
+  .italic { font-style: italic; }
+  .bg-gray-50 { background: #f9fafb; }
+  .bg-gray-100 { background: #f3f4f6; }
+  .bg-white { background-color: #ffffff; }
+  .col-span-2 { grid-column: span 2; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .items-start { align-items: flex-start; }
+  .justify-center { justify-content: center; }
+  .justify-between { justify-content: space-between; }
+  .leading-tight { line-height: 1.25; }
+  .px-1, .px-2, .px-4 { padding-left: 4px; padding-right: 4px; }
+  .py-1 { padding-top: 4px; padding-bottom: 4px; }
+  .mb-1 { margin-bottom: 4px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mt-8 { margin-top: 32px; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .w-48 { width: 12rem; }
+  .w-32 { width: 8rem; }
+  .h-12 { height: 3rem; }
+  .gap-4 { gap: 16px; }
+  .whitespace-nowrap { white-space: nowrap; }
+  .text-\\[9px\\] { font-size: 9px; }
+  .text-\\[8px\\] { font-size: 8px; }
+  .text-\\[10px\\] { font-size: 10px; }
+  .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+  .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+  .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .text-xs { font-size: 0.75rem; line-height: 1rem; }
+  .min-h-\\[35px\\] { min-height: 35px; }
+  .text-blue-900 { color: rgb(30 58 138); }
+  .text-green-600 { color: #16a34a; }
+  .text-red-600 { color: #dc2626; }
+  .text-blue-700 { color: #1d4ed8; }
+  .hidden { display: none !important; }
+  select, input { display: none !important; }
+  span { display: inline; }
+`;
+
 
 export function WarrantyReportDetails() {
   const { id } = useParams();
@@ -13,6 +80,7 @@ export function WarrantyReportDetails() {
   const location = useLocation();
   const { laudos, loading } = useLaudos();
   const [dynamicData, setDynamicData] = useState<any>(location.state);
+  const [printFit, setPrintFit] = useState<"auto" | "none">("auto");
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<"cliente" | "interna">(
     location.state?.abaOrigem === "interna" ? "interna" : "cliente"
