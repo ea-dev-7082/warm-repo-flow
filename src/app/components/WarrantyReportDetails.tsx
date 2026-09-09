@@ -363,7 +363,16 @@ export function WarrantyReportDetails() {
           <ArrowLeft size={20} className="text-gray-600" />
           <span className="text-gray-700">Voltar</span>
         </button>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <select
+            value={printFit}
+            onChange={(e) => setPrintFit(e.target.value as "auto" | "none")}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white print:hidden"
+            title="Ajuste da impressão"
+          >
+            <option value="auto">Automático (uma folha)</option>
+            <option value="none">Tamanho normal</option>
+          </select>
           <button
             onClick={() => handlePrint(activeTab === 'cliente' ? 'print-laudo-cliente' : 'print-laudo-interna')}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
