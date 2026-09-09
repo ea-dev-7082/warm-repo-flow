@@ -534,8 +534,15 @@ export function TratamentoFornecedor() {
             overflow: visible !important;
           }
 
+          .mirror-modal-print table tr,
+          .mirror-modal-print .grid,
+          .mirror-modal-print .flex {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
           @page {
-            margin: 1.5cm;
+            margin: 1cm;
             size: auto;
           }
         }
