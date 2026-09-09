@@ -117,6 +117,7 @@ export function LaudoTecnico() {
     phone: "(21) 96480-3390"
   });
 
+  const [printFit, setPrintFit] = useState<"auto" | "none">("auto");
   const [activeTab, setActiveTab] = useState<"analise" | "cliente" | "interna">(
     importedData?.abaOrigem || "analise"
   );
