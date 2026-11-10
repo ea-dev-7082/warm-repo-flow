@@ -1,5 +1,5 @@
-import { MetricCard } from "./MetricCard";
-import { DataTable } from "./DataTable";
+import { MetricCard } from "@/features/dashboard/components/MetricCard";
+import { DataTable } from "@/components/shared/DataTable";
 import { FileText, CheckCircle, XCircle, Package, Plus, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";

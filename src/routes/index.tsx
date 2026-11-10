@@ -1,18 +1,18 @@
 import { createBrowserRouter } from "react-router-dom";
-import { Layout } from "./components/Layout";
-import { Dashboard } from "./components/Dashboard";
-import { ImportXML } from "./components/ImportXML";
-import { LaudoTecnico } from "./components/LaudoTecnico";
-import { Historico } from "./components/Historico";
-import { Relatorios } from "./components/Relatorios";
-import { PlaceholderPage } from "./components/PlaceholderPage";
-import { WarrantyReportDetails } from "./components/WarrantyReportDetails";
-import { LaudosAbertos } from "./components/LaudosAbertos";
-import { AuthPage } from "./components/auth/AuthPage";
-import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
-import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import { Configuracoes } from "./components/Configuracoes";
-import { TratamentoFornecedor } from "./components/TratamentoFornecedor";
+import { Layout } from "@/components/layout/Layout";
+import { Dashboard } from "@/features/dashboard/pages/Dashboard";
+import { ImportXML } from "@/features/xml-import/pages/ImportXML";
+import { LaudoTecnico } from "@/features/laudos/pages/LaudoTecnico";
+import { Historico } from "@/features/laudos/pages/Historico";
+import { Relatorios } from "@/features/laudos/pages/Relatorios";
+import { PlaceholderPage } from "@/components/layout/PlaceholderPage";
+import { WarrantyReportDetails } from "@/features/laudos/pages/WarrantyReportDetails";
+import { LaudosAbertos } from "@/features/laudos/pages/LaudosAbertos";
+import { AuthPage } from "@/features/auth/pages/AuthPage";
+import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
+import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
+import { Configuracoes } from "@/features/configuracoes/pages/Configuracoes";
+import { TratamentoFornecedor } from "@/features/fornecedor/pages/TratamentoFornecedor";
 
 export const router = createBrowserRouter([
   {

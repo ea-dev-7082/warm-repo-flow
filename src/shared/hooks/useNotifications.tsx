@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLaudos } from '../contexts/LaudosContext';
+import { useLaudos } from '@/features/laudos/contexts/LaudosContext';
 
 export interface NotificationItem {
   id: string;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
-import { useAuth } from "../hooks/useAuth";
-import { useLaudos } from "../contexts/LaudosContext";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
 import { 
   UserPlus, 
   Users, 
@@ -18,7 +18,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
-import { SearchableSelect } from "./ui/SearchableSelect";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 
 interface Profile {
   id: string;

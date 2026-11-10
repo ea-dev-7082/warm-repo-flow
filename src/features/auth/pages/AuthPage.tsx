@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { LoginForm } from "./LoginForm";
-import { RegisterForm } from "./RegisterForm";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { LoginForm } from "@/features/auth/components/LoginForm";
+import { RegisterForm } from "@/features/auth/components/RegisterForm";
+import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
 
 type AuthView = "login" | "register" | "forgot-password";
 

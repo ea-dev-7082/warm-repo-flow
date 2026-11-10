@@ -1,12 +1,12 @@
 import { ArrowLeft, Printer, Download, Lock, FileText, Loader2 } from "lucide-react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { useLaudos } from "../contexts/LaudosContext";
-import { supabase } from "../../integrations/supabase/client";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
+import { supabase } from "@/integrations/supabase/client";
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
-import { printDocument } from "../utils/printDocument";
+import { printDocument } from "@/shared/utils/printDocument";
 
 const WARRANTY_PRINT_CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }

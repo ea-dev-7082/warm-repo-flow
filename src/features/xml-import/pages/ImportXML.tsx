@@ -1,8 +1,8 @@
-import { FileUpload } from "./FileUpload";
+import { FileUpload } from "@/components/shared/FileUpload";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { XMLParser } from "fast-xml-parser";
-import { useLaudos } from "../contexts/LaudosContext";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 

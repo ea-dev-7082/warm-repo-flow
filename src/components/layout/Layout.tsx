@@ -13,9 +13,9 @@ import {
   Truck,
 } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/app/hooks/useAuth";
-import { FloatingSupportChat } from "./FloatingSupportChat";
-import { useNotifications } from "../hooks/useNotifications";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { FloatingSupportChat } from "@/components/layout/FloatingSupportChat";
+import { useNotifications } from "@/shared/hooks/useNotifications";
 
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },

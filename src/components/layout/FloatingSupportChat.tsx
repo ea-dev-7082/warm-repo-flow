@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
-import { useAuth } from "@/app/hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 interface Message {
   role: "user" | "assistant";

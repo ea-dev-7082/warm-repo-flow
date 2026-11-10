@@ -3,14 +3,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Download, FileDown, Plus, Printer, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { XMLParser } from "fast-xml-parser";
-import { MultiSelect } from "./ui/MultiSelect";
-import { SearchableSelect } from "./ui/SearchableSelect";
+import { MultiSelect } from "@/components/shared/MultiSelect";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { supabase } from "@/integrations/supabase/client";
-import { useLaudos } from "../contexts/LaudosContext";
-import { useAuth } from "../hooks/useAuth";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
-import { printDocument } from "../utils/printDocument";
+import { printDocument } from "@/shared/utils/printDocument";
 // FABRICANTES is now dynamic from context
 
 const STORAGE_KEY = '@comkit:laudo-tecnico-draft';

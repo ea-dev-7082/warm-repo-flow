@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, Truck, Building2, User, ArrowLeft, FileText, ClipboardList, Loader2, Check, PlayCircle, Lock, Save, History, Calendar, CheckSquare, Eye, Printer } from "lucide-react";
-import { useLaudos } from "../contexts/LaudosContext";
-import { useAuth } from "../hooks/useAuth";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 // FABRICANTES is now dynamic from context
 import { toast } from "sonner";
-import { DanfeMirror } from "./DanfeMirror";
+import { DanfeMirror } from "@/features/fornecedor/components/DanfeMirror";
 
 export function TratamentoFornecedor() {
   const { laudos, loading, adicionarLaudo, atualizarLaudo, cadastros } = useLaudos();

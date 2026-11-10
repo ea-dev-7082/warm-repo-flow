@@ -1,10 +1,10 @@
 import { Search, FileText, Lock, Loader2, Upload, ExternalLink } from "lucide-react";
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLaudos } from "../contexts/LaudosContext";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SearchableSelect } from "./ui/SearchableSelect";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 
 interface HistoricoRowProps {
   item: any;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, FileEdit, Trash2, CheckCircle, FileText, Lock, Loader2 } from "lucide-react";
-import { useLaudos } from "../contexts/LaudosContext";
+import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
 import { toast } from "sonner";
 
 export function LaudosAbertos() {
