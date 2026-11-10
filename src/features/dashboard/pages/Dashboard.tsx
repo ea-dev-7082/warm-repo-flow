@@ -19,6 +19,13 @@ interface ChartDataItem {
   quantidade: number;
 }
 
+function getReferencia(row: any): string {
+  const codigo = String(row?.produto_codigo ?? "").trim();
+  const produtos = (row?.xml_dados as any)?.produtos || [];
+  const match = produtos.find((p: any) => String(p?.codigo ?? "").trim() === codigo);
+  return (match?.referencia && String(match.referencia).trim()) || codigo || "Sem código";
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -38,7 +45,7 @@ export function Dashboard() {
 
         const { data: monthData, error: monthError } = await supabase
           .from("laudos")
-          .select("status, produto_descricao, xml_dados")
+          .select("status, produto_codigo, xml_dados")
           .gte("created_at", start)
           .lte("created_at", end);
 
@@ -66,7 +73,8 @@ export function Dashboard() {
         // Calculate product with most occurrences
         const productCounts: Record<string, number> = {};
         monthData?.forEach(item => {
-          productCounts[item.produto_descricao] = (productCounts[item.produto_descricao] || 0) + 1;
+          const ref = getReferencia(item);
+          productCounts[ref] = (productCounts[ref] || 0) + 1;
         });
 
         const topProduct = Object.entries(productCounts)
@@ -102,13 +110,14 @@ export function Dashboard() {
         // 2. Fetch Chart Data (Top 5 products overall)
         const { data: allData, error: allError } = await supabase
           .from("laudos")
-          .select("produto_descricao");
+          .select("produto_codigo, xml_dados");
 
         if (allError) throw allError;
 
         const allProductCounts: Record<string, number> = {};
         allData?.forEach(item => {
-          allProductCounts[item.produto_descricao] = (allProductCounts[item.produto_descricao] || 0) + 1;
+          const ref = getReferencia(item);
+          allProductCounts[ref] = (allProductCounts[ref] || 0) + 1;
         });
 
         const formattedChartData = Object.entries(allProductCounts)
@@ -121,7 +130,7 @@ export function Dashboard() {
         // 3. Fetch Recent Movements
         const { data: recentData, error: recentError } = await supabase
           .from("laudos")
-          .select("id, cliente_nome, produto_descricao, nf_garantia, status, created_at, responsavel_nome, xml_dados")
+          .select("id, cliente_nome, produto_codigo, nf_garantia, status, created_at, responsavel_nome, xml_dados")
           .order("created_at", { ascending: false })
           .limit(5);
 
@@ -132,7 +141,7 @@ export function Dashboard() {
           return {
             id: item.id,
             cliente: item.cliente_nome,
-            produto: item.produto_descricao,
+            produto: getReferencia(item),
             nfGarantia: item.nf_garantia,
             status: item.status,
             data: new Date(xmlDados.data || item.created_at).toLocaleDateString("pt-BR"),
