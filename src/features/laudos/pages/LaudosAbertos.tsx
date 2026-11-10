@@ -52,7 +52,6 @@ export function LaudosAbertos() {
         });
 
     const columns = [
-        { key: "id", label: "ID Laudo" },
         { key: "cliente", label: "Cliente" },
         { key: "nfGarantia", label: "NF Garantia" },
         { key: "produto", label: "Produto(s)" },
@@ -134,7 +133,6 @@ export function LaudosAbertos() {
                             <tbody>
                                 {laudosExibidos.map((item, index) => (
                                     <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td className="py-4 px-4 text-sm font-medium text-gray-900">{item.id}</td>
                                         <td className="py-4 px-4 text-sm text-gray-600">{item.cliente}</td>
                                         <td className="py-4 px-4 text-sm text-gray-600">{item.nfGarantia}</td>
                                         <td className="py-4 px-4 text-sm text-gray-600 truncate max-w-[200px]">{item.produto}</td>
