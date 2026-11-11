@@ -19,6 +19,7 @@ export function LaudosAbertos() {
             const matchesSearch = !searchTerm ||
                 l.cliente?.toLowerCase().includes(searchLower) ||
                 l.nfGarantia?.toLowerCase().includes(searchLower) ||
+                l.referenciaColuna?.toLowerCase().includes(searchLower) ||
                 l.produtos?.some((p: any) =>
                     p.descricao?.toLowerCase().includes(searchLower) ||
                     p.codigo?.toLowerCase().includes(searchLower)
@@ -44,7 +45,7 @@ export function LaudosAbertos() {
             return {
                 id: l.id,
                 cliente: l.cliente,
-                produto: l.produtos?.[0]?.descricao || "Vários produtos", // Pega o primeiro como resumo
+                produto: l.referenciaColuna?.trim() || l.produtoDescricao || l.produtos?.[0]?.descricao || "Vários produtos",
                 nfGarantia: l.nfGarantia,
                 status: l.statusLaudo === 'finalizado' ? 'Finalizado' : 'Em aberto',
                 data: dataFormatada,
