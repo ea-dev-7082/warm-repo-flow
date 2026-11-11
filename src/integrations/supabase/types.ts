@@ -218,6 +218,7 @@ export type Database = {
           produto_quantidade: number | null
           produto_valor_total: number | null
           produto_valor_unitario: number | null
+          referencia: string | null
           responsavel_id: string | null
           responsavel_nome: string | null
           status: string
@@ -247,6 +248,7 @@ export type Database = {
           produto_quantidade?: number | null
           produto_valor_total?: number | null
           produto_valor_unitario?: number | null
+          referencia?: string | null
           responsavel_id?: string | null
           responsavel_nome?: string | null
           status?: string
@@ -276,6 +278,7 @@ export type Database = {
           produto_quantidade?: number | null
           produto_valor_total?: number | null
           produto_valor_unitario?: number | null
+          referencia?: string | null
           responsavel_id?: string | null
           responsavel_nome?: string | null
           status?: string
