@@ -71,6 +71,8 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
                     responsavelId: item.responsavel_id || undefined,
                     produtos: (item.xml_dados as any)?.produtos || [],
                     ...(item.xml_dados as any || {}),
+                    referenciaColuna: (item as any).referencia || undefined,
+                    produtoDescricao: item.produto_descricao || undefined,
                 }));
                 setLaudos(mappedLaudos);
             }
@@ -110,7 +112,7 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
 
             const { data, error } = await supabase
                 .from('laudos')
-                .insert({
+                .insert(({
                     cliente_nome: laudoData.cliente,
                     nf_garantia: laudoData.nfGarantia,
                     status: dbStatus,
@@ -118,8 +120,9 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
                     responsavel_id: user.id,
                     produto_descricao: laudoData.produtos?.[0]?.descricao || 'Vários produtos',
                     produto_codigo: laudoData.produtos?.[0]?.codigo || '',
+                    referencia: String(laudoData.produtos?.[0]?.referencia ?? '').trim() || null,
                     xml_dados: laudoData as any,
-                })
+                }) as any)
                 .select()
                 .single();
 
@@ -131,7 +134,8 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
                     id: data.id,
                     statusLaudo,
                     responsavelId: user.id,
-                } as Laudo;
+                    referenciaColuna: String(laudoData.produtos?.[0]?.referencia ?? '').trim() || undefined,
+                } as unknown as Laudo;
 
                 setLaudos(prev => [novoLaudo, ...prev]);
                 return data.id;
@@ -154,6 +158,12 @@ export function LaudosProvider({ children }: { children: ReactNode }) {
             }
             if (dados.responsavel) updatePayload.responsavel_nome = dados.responsavel;
             if (dados.responsavelId) updatePayload.responsavel_id = dados.responsavelId;
+            if (Array.isArray(dados.produtos) && dados.produtos.length > 0) {
+                const p0 = dados.produtos[0];
+                updatePayload.referencia = String(p0?.referencia ?? '').trim() || null;
+                if (p0?.codigo) updatePayload.produto_codigo = p0.codigo;
+                if (p0?.descricao) updatePayload.produto_descricao = p0.descricao;
+            }
 
             // Re-fetch current data to merge xml_dados
             const { data: current } = await supabase.from('laudos').select('xml_dados').eq('id', id).single();

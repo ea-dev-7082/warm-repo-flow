@@ -49,11 +49,8 @@ export function Relatorios() {
         // 1. Produtos com mais ocorrências
         const productCounts: Record<string, number> = {};
         laudos.forEach(l => {
-          const produtos = (l.xml_dados as any)?.produtos || [];
-          produtos.forEach((p: any) => {
-            const desc = String(p.referencia ?? "").trim() || String(p.codigo ?? "").trim() || "Sem código";
-            productCounts[desc] = (productCounts[desc] || 0) + 1;
-          });
+          const desc = String((l as any).referencia ?? "").trim() || String(l.produto_descricao ?? "").trim() || "Sem código";
+          productCounts[desc] = (productCounts[desc] || 0) + 1;
         });
         const topProducts = Object.entries(productCounts)
           .map(([produto, quantidade]) => ({ produto, quantidade }))

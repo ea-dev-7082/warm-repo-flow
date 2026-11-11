@@ -273,7 +273,7 @@ export function Historico() {
     return {
       id: l.id,
       data: dataFormatada,
-      produto: l.produtos?.[0]?.descricao || "Vários produtos",
+      produto: l.referenciaColuna || l.produtoDescricao || l.produtos?.[0]?.descricao || "Vários produtos",
       cliente: l.cliente,
       nfGarantia: l.nfGarantia,
       status: "Finalizado",

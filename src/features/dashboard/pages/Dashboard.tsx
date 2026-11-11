@@ -20,10 +20,7 @@ interface ChartDataItem {
 }
 
 function getReferencia(row: any): string {
-  const codigo = String(row?.produto_codigo ?? "").trim();
-  const produtos = (row?.xml_dados as any)?.produtos || [];
-  const match = produtos.find((p: any) => String(p?.codigo ?? "").trim() === codigo);
-  return (match?.referencia && String(match.referencia).trim()) || codigo || "Sem código";
+  return String(row?.referencia ?? "").trim() || String(row?.produto_descricao ?? "").trim() || "Sem código";
 }
 
 export function Dashboard() {
@@ -45,7 +42,7 @@ export function Dashboard() {
 
         const { data: monthData, error: monthError } = await supabase
           .from("laudos")
-          .select("status, produto_codigo, xml_dados")
+          .select("status, referencia, produto_descricao, xml_dados")
           .gte("created_at", start)
           .lte("created_at", end);
 
@@ -110,7 +107,7 @@ export function Dashboard() {
         // 2. Fetch Chart Data (Top 5 products overall)
         const { data: allData, error: allError } = await supabase
           .from("laudos")
-          .select("produto_codigo, xml_dados");
+          .select("referencia, produto_descricao");
 
         if (allError) throw allError;
 
@@ -130,7 +127,7 @@ export function Dashboard() {
         // 3. Fetch Recent Movements
         const { data: recentData, error: recentError } = await supabase
           .from("laudos")
-          .select("id, cliente_nome, produto_codigo, nf_garantia, status, created_at, responsavel_nome, xml_dados")
+          .select("id, cliente_nome, referencia, produto_descricao, nf_garantia, status, created_at, responsavel_nome, xml_dados")
           .order("created_at", { ascending: false })
           .limit(5);
 
