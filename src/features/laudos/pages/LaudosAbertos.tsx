@@ -17,12 +17,12 @@ export function LaudosAbertos() {
 
             const searchLower = searchTerm.toLowerCase();
             const matchesSearch = !searchTerm ||
-                l.cliente?.toLowerCase().includes(searchLower) ||
-                l.nfGarantia?.toLowerCase().includes(searchLower) ||
-                l.referenciaColuna?.toLowerCase().includes(searchLower) ||
+                String(l.cliente ?? '').toLowerCase().includes(searchLower) ||
+                String(l.nfGarantia ?? '').toLowerCase().includes(searchLower) ||
+                String(l.referenciaColuna ?? '').toLowerCase().includes(searchLower) ||
                 l.produtos?.some((p: any) =>
-                    p.descricao?.toLowerCase().includes(searchLower) ||
-                    p.codigo?.toLowerCase().includes(searchLower)
+                    String(p.descricao ?? '').toLowerCase().includes(searchLower) ||
+                    String(p.codigo ?? '').toLowerCase().includes(searchLower)
                 );
 
             return matchesSearch;

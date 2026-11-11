@@ -231,14 +231,14 @@ export function Historico() {
 
     // Filtro de Produto
     if (filters.produto && !l.produtos?.some((p: any) =>
-      p.descricao?.toLowerCase().includes(filters.produto.toLowerCase()) ||
-      p.codigo?.toLowerCase().includes(filters.produto.toLowerCase())
+      String(p.descricao ?? '').toLowerCase().includes(filters.produto.toLowerCase()) ||
+      String(p.codigo ?? '').toLowerCase().includes(filters.produto.toLowerCase())
     )) {
       return false;
     }
 
     // Filtro de Cliente
-    if (filters.cliente && !l.cliente?.toLowerCase().includes(filters.cliente.toLowerCase())) {
+    if (filters.cliente && !String(l.cliente ?? '').toLowerCase().includes(filters.cliente.toLowerCase())) {
       return false;
     }
 
@@ -248,7 +248,7 @@ export function Historico() {
     }
 
     // Filtro de Nota Paga
-    if (filters.notaPaga && !l.notaPaga?.toLowerCase().includes(filters.notaPaga.toLowerCase())) {
+    if (filters.notaPaga && !String(l.notaPaga ?? '').toLowerCase().includes(filters.notaPaga.toLowerCase())) {
       return false;
     }
 
