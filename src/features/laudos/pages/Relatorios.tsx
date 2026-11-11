@@ -51,7 +51,7 @@ export function Relatorios() {
         laudos.forEach(l => {
           const produtos = (l.xml_dados as any)?.produtos || [];
           produtos.forEach((p: any) => {
-            const desc = p.descricao || "Sem descrição";
+            const desc = String(p.referencia ?? "").trim() || String(p.codigo ?? "").trim() || "Sem código";
             productCounts[desc] = (productCounts[desc] || 0) + 1;
           });
         });
