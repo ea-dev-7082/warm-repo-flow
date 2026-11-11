@@ -929,7 +929,7 @@ export function LaudoTecnico() {
                               onKeyDown={handleEnterNavigation}
                             />
                           </td>
-                          <td className="px-2 py-2 min-w-[100px] align-top">
+                          <td className="px-2 py-2 min-w-[100px]">
                             {(() => {
                               const itensSelecionados = p.itemAvaliado ? p.itemAvaliado.split(", ").filter(Boolean) : [];
                               if (itensSelecionados.length === 0) {
