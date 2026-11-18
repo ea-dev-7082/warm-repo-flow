@@ -1,0 +1,6 @@
+DO $$ DECLARE v text; BEGIN SELECT pg_get_viewdef('public.laudos_leitura'::regclass,true) INTO v; DROP VIEW public.laudos_leitura; ALTER TABLE public.laudo_itens ALTER COLUMN valor_unitario TYPE numeric, ALTER COLUMN valor_total TYPE numeric; EXECUTE 'CREATE VIEW public.laudos_leitura WITH (security_invoker=true) AS ' || v; END $$;
+REVOKE ALL ON public.laudos_leitura FROM PUBLIC,anon;
+GRANT SELECT ON public.laudos_leitura TO authenticated;
+GRANT ALL ON public.laudos_leitura TO service_role;
+UPDATE public.laudo_itens i SET valor_unitario=public.laudo_numero(p->>'vUnit'),valor_total=public.laudo_numero(p->>'vProd') FROM public.laudos l CROSS JOIN LATERAL jsonb_array_elements(coalesce(l.xml_dados->'produtos','[]')) WITH ORDINALITY a(p,n) WHERE i.laudo_id=l.id AND i.posicao=n AND (i.valor_unitario IS DISTINCT FROM public.laudo_numero(p->>'vUnit') OR i.valor_total IS DISTINCT FROM public.laudo_numero(p->>'vProd'));
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM public.laudos l JOIN public.laudos_leitura v USING(id) CROSS JOIN LATERAL jsonb_array_elements(l.xml_dados->'produtos') WITH ORDINALITY a(p,n) WHERE public.laudo_numero(p->>'vProd') IS DISTINCT FROM public.laudo_numero(v.produtos->(n::integer-1)->>'vProd')) THEN RAISE EXCEPTION 'Valores históricos divergentes'; END IF; END $$;
