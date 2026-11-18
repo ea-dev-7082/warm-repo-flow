@@ -170,6 +170,8 @@ export type Database = {
           fornecedor_nome: string | null
           id: string
           laudo_item_id: string
+          ordem_avaliado: number | null
+          ordem_reaproveitado: number | null
           quantidade_no_kit: number | null
           reaproveitado: boolean
           updated_at: string
@@ -186,6 +188,8 @@ export type Database = {
           fornecedor_nome?: string | null
           id?: string
           laudo_item_id: string
+          ordem_avaliado?: number | null
+          ordem_reaproveitado?: number | null
           quantidade_no_kit?: number | null
           reaproveitado?: boolean
           updated_at?: string
@@ -202,6 +206,8 @@ export type Database = {
           fornecedor_nome?: string | null
           id?: string
           laudo_item_id?: string
+          ordem_avaliado?: number | null
+          ordem_reaproveitado?: number | null
           quantidade_no_kit?: number | null
           reaproveitado?: boolean
           updated_at?: string

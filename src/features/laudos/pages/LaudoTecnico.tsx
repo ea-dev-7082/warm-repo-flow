@@ -485,7 +485,11 @@ export function LaudoTecnico() {
     };
 
     if (importedData?.id) {
-      await atualizarLaudo(importedData.id, laudoData);
+      try {
+        await atualizarLaudo(importedData.id, laudoData);
+      } catch {
+        return;
+      }
       toast.success("Laudo atualizado com sucesso!");
       navigate("/laudos-abertos");
     } else {

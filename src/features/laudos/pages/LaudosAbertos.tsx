@@ -71,7 +71,11 @@ export function LaudosAbertos() {
 
     const handleFecharLaudo = async (item: any) => {
         if (window.confirm("Deseja fechar este laudo e marcá-lo como finalizado? O laudo irá para o Histórico e sairá desta tela em breve.")) {
-            await atualizarLaudo(item.id, { statusLaudo: 'finalizado' });
+            try {
+                await atualizarLaudo(item.id, { statusLaudo: 'finalizado' });
+            } catch {
+                return;
+            }
             toast.success("Laudo marcado como finalizado!");
         }
     };
