@@ -18,48 +18,51 @@ export type Database = {
         Row: {
           bairro: string | null
           cep: string | null
+          cidade: string | null
           classe: Database["public"]["Enums"]["tipo_cadastro"]
           cnpj: string
           created_at: string | null
           email: string | null
           endereco: string | null
-          estado: string | null
-          fone: string | null
+          id_fnc: number | null
           inscricao_estadual: string | null
           nome: string
           numero: string | null
+          telefone: string | null
           uf: string | null
           updated_at: string | null
         }
         Insert: {
           bairro?: string | null
           cep?: string | null
+          cidade?: string | null
           classe: Database["public"]["Enums"]["tipo_cadastro"]
           cnpj: string
           created_at?: string | null
           email?: string | null
           endereco?: string | null
-          estado?: string | null
-          fone?: string | null
+          id_fnc?: number | null
           inscricao_estadual?: string | null
           nome: string
           numero?: string | null
+          telefone?: string | null
           uf?: string | null
           updated_at?: string | null
         }
         Update: {
           bairro?: string | null
           cep?: string | null
+          cidade?: string | null
           classe?: Database["public"]["Enums"]["tipo_cadastro"]
           cnpj?: string
           created_at?: string | null
           email?: string | null
           endereco?: string | null
-          estado?: string | null
-          fone?: string | null
+          id_fnc?: number | null
           inscricao_estadual?: string | null
           nome?: string
           numero?: string | null
+          telefone?: string | null
           uf?: string | null
           updated_at?: string | null
         }
