@@ -23,13 +23,14 @@ export interface Cadastro {
     classe: 'cliente' | 'fornecedor' | 'transportadora';
     inscricao_estadual?: string;
     email?: string;
-    fone?: string;
+    telefone?: string;
     endereco?: string;
     numero?: string;
     bairro?: string;
     cep?: string;
     uf?: string;
-    estado?: string;
+    cidade?: string;
+    id_fnc?: number | null;
     [key: string]: any;
 }
 

@@ -316,7 +316,7 @@ export function DanfeMirror({
         </div>
         <div className="danfe-box w-1/5">
           <span className="danfe-label">FONE / FAX</span>
-          <span className="danfe-value">{recipient?.fone || "(00) 0000-0000"}</span>
+          <span className="danfe-value">{recipient?.telefone || "(00) 0000-0000"}</span>
         </div>
         <div className="danfe-box w-1/5">
           <span className="danfe-label">INSCRIÇÃO ESTADUAL</span>

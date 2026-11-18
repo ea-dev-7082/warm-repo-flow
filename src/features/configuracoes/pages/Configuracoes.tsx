@@ -53,13 +53,13 @@ export function Configuracoes() {
     classe: "cliente" as "cliente" | "fornecedor" | "transportadora",
     inscricao_estadual: "",
     email: "",
-    fone: "",
+    telefone: "",
     endereco: "",
     numero: "",
     bairro: "",
     cep: "",
     uf: "",
-    estado: ""
+    cidade: ""
   });
   const [isSyncingApi, setIsSyncingApi] = useState(false);
 
@@ -167,8 +167,8 @@ export function Configuracoes() {
         cep: data.cep?.replace(/\D/g, "") || prev.cep,
         uf: data.uf || prev.uf,
         email: data.email || prev.email,
-        fone: data.telefone || prev.fone,
-        estado: data.municipio || prev.estado
+        telefone: data.telefone || prev.telefone,
+        cidade: data.municipio || prev.cidade
       }));
 
       toast.success("Dados preenchidos com sucesso via ReceitaWS!");
@@ -205,13 +205,13 @@ export function Configuracoes() {
         classe: "cliente",
         inscricao_estadual: String(item.INSC_IDENT || "").slice(0, 18),
         email: item.EMAIL || null,
-        fone: String(item.TELEFONE || "").slice(0, 18),
+        telefone: String(item.TELEFONE || "").slice(0, 18),
         endereco: item.ENDERECO || null,
         numero: item.ENDERECO_NUM || null,
         bairro: item.BAIRRO || null,
         cep: String(item.CEP || "").replace(/\D/g, "").slice(0, 10),
         uf: String(item.UF || "").slice(0, 2),
-        estado: item.CIDADE || null
+        cidade: item.CIDADE || null
       })).filter((r: any) => r.cnpj.length > 0);
 
       // Filter duplicates by CNPJ to avoid Postgres error "ON CONFLICT DO UPDATE command cannot affect row a second time"
@@ -265,7 +265,7 @@ export function Configuracoes() {
       setEditingRecord(null);
       setNewRecord({
         cnpj: "", nome: "", classe: recordFilter, inscricao_estadual: "",
-        email: "", fone: "", endereco: "", numero: "", bairro: "", cep: "", uf: "", estado: ""
+        email: "", telefone: "", endereco: "", numero: "", bairro: "", cep: "", uf: "", cidade: ""
       });
       fetchCadastros(); // Refresh cadastros from context
     } catch (error: any) {
@@ -660,7 +660,7 @@ export function Configuracoes() {
                     setEditingRecord(null);
                     setNewRecord({
                       cnpj: "", nome: "", classe: recordFilter, inscricao_estadual: "",
-                      email: "", fone: "", endereco: "", numero: "", bairro: "", cep: "", uf: "", estado: ""
+                      email: "", telefone: "", endereco: "", numero: "", bairro: "", cep: "", uf: "", cidade: ""
                     });
                     setShowRecordModal(true);
                   }}
@@ -699,7 +699,7 @@ export function Configuracoes() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-600">{r.email || "-"}</div>
-                          <div className="text-xs text-gray-400">{r.fone || "-"}</div>
+                          <div className="text-xs text-gray-400">{r.telefone || "-"}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
@@ -828,8 +828,8 @@ export function Configuracoes() {
                   <label className="block text-sm font-bold text-gray-700 mb-2">Telefone</label>
                   <input
                     type="text"
-                    value={newRecord.fone}
-                    onChange={(e) => setNewRecord({...newRecord, fone: e.target.value})}
+                    value={newRecord.telefone}
+                    onChange={(e) => setNewRecord({...newRecord, telefone: e.target.value})}
                     className="w-full px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all font-mono"
                     placeholder="(00) 00000-0000"
                   />
@@ -889,8 +889,8 @@ export function Configuracoes() {
                   <label className="block text-sm font-bold text-gray-700 mb-2">Estado</label>
                   <input
                     type="text"
-                    value={newRecord.estado}
-                    onChange={(e) => setNewRecord({...newRecord, estado: e.target.value})}
+                    value={newRecord.cidade}
+                    onChange={(e) => setNewRecord({...newRecord, cidade: e.target.value})}
                     className="w-full px-5 py-3 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition-all font-medium"
                     placeholder="Rio de Janeiro, São Paulo..."
                   />

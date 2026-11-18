@@ -827,7 +827,7 @@ export function LaudoTecnico() {
                         <th className="px-2 py-2 border-b text-center">QTD</th>
                         <th className="px-2 py-2 border-b">NF interna</th>
                         <th className="px-2 py-2 border-b">Item Avaliado</th>
-                        <th className="px-2 py-2 border-b">Fabricante</th>
+                        <th className="px-2 py-2 border-b">Fornecedor</th>
                         <th className="px-2 py-2 border-b">Item Reaproveitado</th>
                         <th className="px-2 py-2 border-b">Status</th>
                         <th className="px-2 py-2 border-b">Resolução/Obs</th>
@@ -931,7 +931,7 @@ export function LaudoTecnico() {
                                       <input
                                         type="text"
                                         value={p.fabricante === "Outros" ? "" : p.fabricante}
-                                        placeholder="Qual fabricante?"
+                                        placeholder="Qual fornecedor?"
                                         autoFocus
                                         className="w-full px-2 py-1 border border-blue-500 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none"
                                         onChange={(e) => {
@@ -958,7 +958,7 @@ export function LaudoTecnico() {
                                     options={[...manufacturers, "Outros"]}
                                     value={(p.fabricante && !p.fabricante.startsWith("{")) ? p.fabricante : ""}
                                     disabled={!p.recebido}
-                                    placeholder="Fabricante..."
+                                    placeholder="Fornecedor..."
                                     direction="up"
                                     onKeyDown={handleEnterNavigation}
                                     onChange={(val) => {
@@ -994,7 +994,7 @@ export function LaudoTecnico() {
                                             <input
                                               type="text"
                                               value={currentVal === "Outros" ? "" : currentVal}
-                                              placeholder="Qual fabricante?"
+                                              placeholder="Qual fornecedor?"
                                               autoFocus
                                               className="w-full px-2 py-1 border border-blue-500 rounded text-[10px] focus:ring-1 focus:ring-blue-500 outline-none"
                                               onChange={(e) => {
@@ -1038,7 +1038,7 @@ export function LaudoTecnico() {
                                           options={[...manufacturers, "Outros"]}
                                           value={currentVal}
                                           disabled={!p.recebido}
-                                          placeholder="Fabricante..."
+                                          placeholder="Fornecedor..."
                                           direction="up"
                                           onKeyDown={handleEnterNavigation}
                                           onChange={(val) => {

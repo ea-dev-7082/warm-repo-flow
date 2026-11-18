@@ -873,7 +873,7 @@ export function TratamentoFornecedor() {
                       </div>
                       <div>
                         <p className="text-gray-400 font-medium mb-0.5">Telefone</p>
-                        <p className="font-bold text-gray-900">{supplierInfo.fone || "-"}</p>
+                        <p className="font-bold text-gray-900">{supplierInfo.telefone || "-"}</p>
                       </div>
                       <div className="md:col-span-2">
                         <p className="text-gray-400 font-medium mb-0.5">E-mail</p>
