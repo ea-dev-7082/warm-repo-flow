@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
+import { fetchRelationalLaudos } from '@/features/laudos/data/relational';
 
 export function Relatorios() {
   const [loading, setLoading] = useState(true);
@@ -35,11 +36,7 @@ export function Relatorios() {
     async function fetchReportData() {
       try {
         setLoading(true);
-        const { data: laudos, error } = await supabase
-          .from("laudos")
-          .select("*");
-
-        if (error) throw error;
+        const laudos = await fetchRelationalLaudos();
 
         if (!laudos || laudos.length === 0) {
           setLoading(false);
@@ -62,7 +59,7 @@ export function Relatorios() {
         let procedente = 0;
         let naoProcedente = 0;
         laudos.forEach(l => {
-          const produtos = (l.xml_dados as any)?.produtos || [];
+          const produtos = l.produtos || [];
           produtos.forEach((p: any) => {
             if (p.recebido) {
               const s = (p.status || '').toLowerCase();
@@ -81,7 +78,7 @@ export function Relatorios() {
         // 3. Garantias por Fabricante (Fornecedor)
         const manufacturerCounts: Record<string, number> = {};
         laudos.forEach(l => {
-          const produtos = (l.xml_dados as any)?.produtos || [];
+          const produtos = l.produtos || [];
           produtos.forEach((p: any) => {
             let fabs: string[] = [];
             if (p.fabricante) {

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { fetchRelationalLaudos, mapRelationalLaudo } from '@/features/laudos/data/relational';
 
 interface DashboardMetric {
   title: string;
@@ -40,19 +41,14 @@ export function Dashboard() {
         const start = startOfMonth(now).toISOString();
         const end = endOfMonth(now).toISOString();
 
-        const { data: monthData, error: monthError } = await supabase
-          .from("laudos")
-          .select("status, referencia, produto_descricao, xml_dados")
-          .gte("created_at", start)
-          .lte("created_at", end);
-
-        if (monthError) throw monthError;
+        const allData = await fetchRelationalLaudos();
+        const monthData = allData.filter(row => row.created_at >= start && row.created_at <= end);
 
         let procedentesCount = 0;
         let naoProcedentesCount = 0;
 
         monthData?.forEach(report => {
-          const products = (report.xml_dados as any)?.produtos || [];
+          const products = report.produtos || [];
           products.forEach((p: any) => {
             if (p.recebido) {
               const s = (p.status || '').toLowerCase();
@@ -105,11 +101,6 @@ export function Dashboard() {
         ]);
 
         // 2. Fetch Chart Data (Top 5 products overall)
-        const { data: allData, error: allError } = await supabase
-          .from("laudos")
-          .select("referencia, produto_descricao");
-
-        if (allError) throw allError;
 
         const allProductCounts: Record<string, number> = {};
         allData?.forEach(item => {
@@ -125,34 +116,19 @@ export function Dashboard() {
         setChartData(formattedChartData);
 
         // 3. Fetch Recent Movements
-        const { data: recentData, error: recentError } = await supabase
-          .from("laudos")
-          .select("id, cliente_nome, referencia, produto_descricao, nf_garantia, status, created_at, responsavel_nome, xml_dados")
-          .order("created_at", { ascending: false })
-          .limit(5);
-
-        if (recentError) throw recentError;
+        const recentData = allData.slice(0, 5);
 
         setRecentMovements(recentData?.map(item => {
-          const xmlDados = (item.xml_dados as any) || {};
+          const laudo = mapRelationalLaudo(item);
           return {
             id: item.id,
             cliente: item.cliente_nome,
             produto: getReferencia(item),
             nfGarantia: item.nf_garantia,
             status: item.status,
-            data: new Date(xmlDados.data || item.created_at).toLocaleDateString("pt-BR"),
+            data: new Date(laudo.data).toLocaleDateString("pt-BR"),
             // Store the full object for navigation
-            fullData: {
-              id: item.id,
-              cliente: item.cliente_nome,
-              nfGarantia: item.nf_garantia,
-              data: xmlDados.data || item.created_at,
-              statusLaudo: (item.status === 'Finalizado' || item.status === 'finalizado') ? 'finalizado' : 'aberto',
-              responsavel: item.responsavel_nome || undefined,
-              produtos: xmlDados.produtos || [],
-              ...xmlDados,
-            }
+            fullData: laudo
           };
         }) || []);
 

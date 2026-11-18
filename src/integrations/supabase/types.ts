@@ -157,34 +157,151 @@ export type Database = {
           },
         ]
       }
+      laudo_item_componentes: {
+        Row: {
+          avaliado: boolean
+          codigo: string
+          conferente_id: string | null
+          conferente_nome: string | null
+          conferido: boolean
+          created_at: string
+          data_conferencia: string | null
+          fornecedor_id_fnc: number | null
+          fornecedor_nome: string | null
+          id: string
+          laudo_item_id: string
+          quantidade_no_kit: number | null
+          reaproveitado: boolean
+          updated_at: string
+        }
+        Insert: {
+          avaliado?: boolean
+          codigo: string
+          conferente_id?: string | null
+          conferente_nome?: string | null
+          conferido?: boolean
+          created_at?: string
+          data_conferencia?: string | null
+          fornecedor_id_fnc?: number | null
+          fornecedor_nome?: string | null
+          id?: string
+          laudo_item_id: string
+          quantidade_no_kit?: number | null
+          reaproveitado?: boolean
+          updated_at?: string
+        }
+        Update: {
+          avaliado?: boolean
+          codigo?: string
+          conferente_id?: string | null
+          conferente_nome?: string | null
+          conferido?: boolean
+          created_at?: string
+          data_conferencia?: string | null
+          fornecedor_id_fnc?: number | null
+          fornecedor_nome?: string | null
+          id?: string
+          laudo_item_id?: string
+          quantidade_no_kit?: number | null
+          reaproveitado?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laudo_item_componentes_fornecedor_id_fnc_fkey"
+            columns: ["fornecedor_id_fnc"]
+            isOneToOne: false
+            referencedRelation: "cadastros"
+            referencedColumns: ["id_fnc"]
+          },
+          {
+            foreignKeyName: "laudo_item_componentes_laudo_item_id_fkey"
+            columns: ["laudo_item_id"]
+            isOneToOne: false
+            referencedRelation: "laudo_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       laudo_itens: {
         Row: {
+          acao: string | null
+          avaliacao: string | null
           codigo: string | null
+          conferente_id: string | null
+          conferente_nome: string | null
+          conferido: boolean
           created_at: string
+          data_conferencia: string | null
+          data_kit: string | null
           descricao: string
+          fornecedor_nome: string | null
           id: string
           laudo_id: string
+          ncm: string | null
+          nf_interna: string | null
+          posicao: number | null
           quantidade: number | null
+          quantidade_recebida: number | null
+          recebido: boolean
+          referencia: string | null
+          status: string | null
+          unidade: string | null
+          updated_at: string
           valor_total: number | null
           valor_unitario: number | null
         }
         Insert: {
+          acao?: string | null
+          avaliacao?: string | null
           codigo?: string | null
+          conferente_id?: string | null
+          conferente_nome?: string | null
+          conferido?: boolean
           created_at?: string
+          data_conferencia?: string | null
+          data_kit?: string | null
           descricao: string
+          fornecedor_nome?: string | null
           id?: string
           laudo_id: string
+          ncm?: string | null
+          nf_interna?: string | null
+          posicao?: number | null
           quantidade?: number | null
+          quantidade_recebida?: number | null
+          recebido?: boolean
+          referencia?: string | null
+          status?: string | null
+          unidade?: string | null
+          updated_at?: string
           valor_total?: number | null
           valor_unitario?: number | null
         }
         Update: {
+          acao?: string | null
+          avaliacao?: string | null
           codigo?: string | null
+          conferente_id?: string | null
+          conferente_nome?: string | null
+          conferido?: boolean
           created_at?: string
+          data_conferencia?: string | null
+          data_kit?: string | null
           descricao?: string
+          fornecedor_nome?: string | null
           id?: string
           laudo_id?: string
+          ncm?: string | null
+          nf_interna?: string | null
+          posicao?: number | null
           quantidade?: number | null
+          quantidade_recebida?: number | null
+          recebido?: boolean
+          referencia?: string | null
+          status?: string | null
+          unidade?: string | null
+          updated_at?: string
           valor_total?: number | null
           valor_unitario?: number | null
         }
@@ -194,6 +311,13 @@ export type Database = {
             columns: ["laudo_id"]
             isOneToOne: false
             referencedRelation: "laudos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laudo_itens_laudo_id_fkey"
+            columns: ["laudo_id"]
+            isOneToOne: false
+            referencedRelation: "laudos_leitura"
             referencedColumns: ["id"]
           },
         ]
@@ -207,14 +331,21 @@ export type Database = {
           cliente_endereco: string | null
           cliente_estado: string | null
           cliente_nome: string
+          conferentes_fornecedores: Json
           created_at: string
           data_emissao_garantia: string | null
+          data_registro: string | null
           descricao_defeito: string | null
+          documento_assinatura: string | null
           id: string
           nf_garantia: string
+          nf_interna: string | null
           nf_venda_data: string | null
           nf_venda_numero: string | null
+          normalizado_em: string | null
+          nota_paga: string | null
           observacoes: string | null
+          pagamento: string | null
           problema_relatado: string | null
           produto_codigo: string | null
           produto_descricao: string
@@ -237,14 +368,21 @@ export type Database = {
           cliente_endereco?: string | null
           cliente_estado?: string | null
           cliente_nome: string
+          conferentes_fornecedores?: Json
           created_at?: string
           data_emissao_garantia?: string | null
+          data_registro?: string | null
           descricao_defeito?: string | null
+          documento_assinatura?: string | null
           id?: string
           nf_garantia: string
+          nf_interna?: string | null
           nf_venda_data?: string | null
           nf_venda_numero?: string | null
+          normalizado_em?: string | null
+          nota_paga?: string | null
           observacoes?: string | null
+          pagamento?: string | null
           problema_relatado?: string | null
           produto_codigo?: string | null
           produto_descricao: string
@@ -267,14 +405,21 @@ export type Database = {
           cliente_endereco?: string | null
           cliente_estado?: string | null
           cliente_nome?: string
+          conferentes_fornecedores?: Json
           created_at?: string
           data_emissao_garantia?: string | null
+          data_registro?: string | null
           descricao_defeito?: string | null
+          documento_assinatura?: string | null
           id?: string
           nf_garantia?: string
+          nf_interna?: string | null
           nf_venda_data?: string | null
           nf_venda_numero?: string | null
+          normalizado_em?: string | null
+          nota_paga?: string | null
           observacoes?: string | null
+          pagamento?: string | null
           problema_relatado?: string | null
           produto_codigo?: string | null
           produto_descricao?: string
@@ -517,7 +662,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      laudos_leitura: {
+        Row: {
+          cliente_nome: string | null
+          conferentes_fornecedores: Json | null
+          created_at: string | null
+          data_registro: string | null
+          documento_assinatura: string | null
+          id: string | null
+          nf_garantia: string | null
+          nf_interna: string | null
+          nota_paga: string | null
+          pagamento: string | null
+          produto_descricao: string | null
+          produtos: Json | null
+          referencia: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_nome?: string | null
+          conferentes_fornecedores?: Json | null
+          created_at?: string | null
+          data_registro?: string | null
+          documento_assinatura?: string | null
+          id?: string | null
+          nf_garantia?: string | null
+          nf_interna?: string | null
+          nota_paga?: string | null
+          pagamento?: string | null
+          produto_descricao?: string | null
+          produtos?: never
+          referencia?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_nome?: string | null
+          conferentes_fornecedores?: Json | null
+          created_at?: string | null
+          data_registro?: string | null
+          documento_assinatura?: string | null
+          id?: string | null
+          nf_garantia?: string | null
+          nf_interna?: string | null
+          nota_paga?: string | null
+          pagamento?: string | null
+          produto_descricao?: string | null
+          produtos?: never
+          referencia?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       buscar_geral: {
@@ -538,6 +742,11 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      laudo_numero: { Args: { v: string }; Returns: number }
+      salvar_laudo_relacional: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: string
       }
     }
     Enums: {
