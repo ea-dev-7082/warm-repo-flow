@@ -886,7 +886,7 @@ export function Configuracoes() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Estado</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Cidade</label>
                   <input
                     type="text"
                     value={newRecord.cidade}
