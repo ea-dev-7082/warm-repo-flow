@@ -1,3 +1,4 @@
+import { useComponentsInfo } from "@/features/laudos/hooks/useErpCatalog";
 import { useState, useMemo, useEffect } from "react";
 import { Search, Truck, Building2, User, ArrowLeft, FileText, ClipboardList, Loader2, Check, PlayCircle, Lock, Save, History, Calendar, CheckSquare, Eye, Printer } from "lucide-react";
 import { useLaudos } from "@/features/laudos/contexts/LaudosContext";
@@ -33,7 +34,6 @@ export function TratamentoFornecedor() {
   const [selectedConferenceDate, setSelectedConferenceDate] = useState<string | null>(null);
   const [historySearchTerm, setHistorySearchTerm] = useState("");
   const [historyDateFilter, setHistoryDateFilter] = useState("");
-  const [componentDescriptions, setComponentDescriptions] = useState<Record<string, string>>({});
 
   // Extract all products for the selected supplier from all laudos
   const supplierProducts = useMemo(() => {
@@ -100,38 +100,17 @@ export function TratamentoFornecedor() {
     return products;
   }, [laudos, selectedSupplier, isConferringLocally, localChecks, viewMode, selectedConferenceDate]);
 
-  useEffect(() => {
-    const fetchComponentDescriptions = async () => {
-      const uniqueComponentCodes = Array.from(new Set(
-        supplierProducts
-          .filter((p: any) => p.itemName)
-          .map((p: any) => p.itemName as string)
-      ));
-
-      if (uniqueComponentCodes.length === 0) return;
-
-      try {
-        const { data, error } = await (supabase as any)
-          .from('componentes_kit')
-          .select('componente_codigo, descricao, referencia')
-          .in('componente_codigo', uniqueComponentCodes);
-
-        if (error) throw error;
-
-        if (data) {
-          const descriptions: Record<string, string> = {};
-          data.forEach((item: any) => {
-            descriptions[item.componente_codigo] = item.descricao || item.referencia || "";
-          });
-          setComponentDescriptions(prev => ({ ...prev, ...descriptions }));
-        }
-      } catch (err) {
-        console.error("Error fetching component descriptions:", err);
-      }
-    };
-
-    fetchComponentDescriptions();
-  }, [supplierProducts]);
+  // Descrições dos componentes vindas do ERP, numa busca em lote (cacheada)
+  const componentCodes = useMemo(
+    () => supplierProducts.filter((p: any) => p.itemName).map((p: any) => String(p.itemName)),
+    [supplierProducts]
+  );
+  const { data: erpComponents, isFetching: isLoadingErpComponents } = useComponentsInfo(componentCodes);
+  const componentDescriptions = useMemo(() => {
+    const map: Record<string, string> = {};
+    (erpComponents || []).forEach(c => { map[c.codigo] = c.descricao || c.referencia || ""; });
+    return map;
+  }, [erpComponents]);
 
   // Extract finalized conferences as separate sessions
   const conferencesHistory = useMemo(() => {
@@ -966,7 +945,7 @@ export function TratamentoFornecedor() {
                       </table>
                     </div>
                     <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 text-xs text-gray-500 no-print">
-                      Exibindo {supplierProducts.length} itens {viewMode === "pending" ? "pendentes" : "conferidos"}.
+                      Exibindo {supplierProducts.length} itens {viewMode === "pending" ? "pendentes" : "conferidos"}.{isLoadingErpComponents && " Carregando descrições do ERP..."}
                     </div>
                   </div>
 

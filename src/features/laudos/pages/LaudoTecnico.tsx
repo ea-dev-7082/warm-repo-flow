@@ -1,3 +1,4 @@
+import { useFetchKit } from "@/features/laudos/hooks/useErpCatalog";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Download, FileDown, Plus, Printer, Save, X } from "lucide-react";
@@ -200,23 +201,20 @@ export function LaudoTecnico() {
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
   const [componentOptions, setComponentOptions] = useState<Record<string, string[]>>({});
 
+  const fetchKit = useFetchKit();
+
+  // Busca a composição do kit no ERP (cache do React Query evita chamadas repetidas)
   const fetchComponentsForProduct = async (code: string) => {
     if (!code) return [];
     try {
-      const { data, error } = await supabase
-        .from('componentes_kit')
-        .select('componente_codigo')
-        .eq('produto_kit_id', code.toUpperCase());
-
-      if (error) throw error;
-      if (data && data.length > 0) {
-        const components = data.map((c: any) => c.componente_codigo).filter((n): n is string => !!n);
-        setComponentOptions(prev => ({ ...prev, [code]: components }));
-        return data;
+      const res = await fetchKit(code);
+      const components = res.componentes.map(c => c.codigo).filter(Boolean);
+      if (components.length > 0) {
+        setComponentOptions(prev => ({ ...prev, [code]: components, [code.toUpperCase()]: components }));
       }
-      return [];
+      return res.componentes;
     } catch (error) {
-      console.error("Erro ao buscar componentes:", error);
+      console.error("Erro ao buscar componentes no ERP:", error);
       return [];
     }
   };
@@ -281,30 +279,23 @@ export function LaudoTecnico() {
   // Busca automática de produto ao digitar o código
   const searchProductByCode = async (code: string) => {
     if (!code || code.length < 3) return;
-
     try {
       setIsSearchingProduct(true);
-      const { data, error } = await supabase
-        .from('produtos_kit')
-        .select('descricao, referencia')
-        .eq('produto_codigo', code.toUpperCase())
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        // Buscar componentes também para pegar fabricante e itens do kit
+      const res = await fetchKit(code);
+      if (res.kit) {
         await fetchComponentsForProduct(code.toUpperCase());
-
         setNewItem(prev => ({
           ...prev,
-          descricao: data.descricao || prev.descricao,
-          referencia: data.referencia || prev.referencia
+          descricao: res.kit!.descricao || prev.descricao,
+          referencia: res.kit!.referencia || prev.referencia
         }));
-        toast.info("Produto e componentes encontrados no banco de dados!");
+        toast.info(res.componentes.length > 0 ? "Produto e componentes encontrados no ERP!" : "Produto encontrado no ERP.");
+      } else {
+        toast.warning("Produto não encontrado no ERP. Preencha manualmente.");
       }
     } catch (error) {
-      console.error("Erro ao buscar produto:", error);
+      console.error("Erro ao buscar produto no ERP:", error);
+      toast.error("Não foi possível consultar o ERP agora. Preencha manualmente.");
     } finally {
       setIsSearchingProduct(false);
     }
